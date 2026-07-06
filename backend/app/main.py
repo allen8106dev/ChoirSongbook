@@ -12,9 +12,13 @@ from app import models, crud, schemas
 # In production with migrations, we use Alembic, but this ensures table creation in local dev
 #
 
-# Create local upload directory if it does not exist
-if not os.path.exists(settings.UPLOAD_DIR):
-    os.makedirs(settings.UPLOAD_DIR)
+# Create local upload directory if it does not exist (only needed for local dev)
+try:
+    if not os.path.exists(settings.UPLOAD_DIR):
+        os.makedirs(settings.UPLOAD_DIR)
+except Exception:
+    pass  # On Render with Supabase storage, this directory may not be needed
+
 
 app = FastAPI(
 
@@ -71,7 +75,11 @@ def health_check():
 # Seeding default data on application startup if database is empty
 @app.on_event("startup")
 def seed_data():
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"Warning: Could not create tables on startup (migrations may already be applied): {e}")
+
     
     db = SessionLocal()
     try:

@@ -1,6 +1,7 @@
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { Music, PlusCircle, Settings, User, BookOpen } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
+import { API_BASE_URL } from '../services/api';
 
 export default function Layout({ children }) {
   const { currentUser } = useSongbook();
@@ -53,7 +54,7 @@ export default function Layout({ children }) {
             </NavLink>
           ))}
           <a
-            href="http://localhost:8000/api/songs/pdf"
+            href={`${API_BASE_URL}/songs/pdf`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold text-gray-400 hover:text-white hover:bg-white/5 border-l-4 border-transparent transition-all duration-200"

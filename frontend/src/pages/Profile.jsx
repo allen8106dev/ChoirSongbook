@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { User, Shield, ShieldCheck, Terminal, ArrowRight, Lock, Unlock } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
+import { User, Shield, ShieldCheck, Terminal, ArrowRight, Lock, Unlock, LogIn } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 
 export default function Profile() {
-  const { currentUser, changeSimulatedUser, adminEmails } = useSongbook();
+  const { currentUser, changeSimulatedUser, adminEmails, handleGoogleLogin } = useSongbook();
   const [customEmail, setCustomEmail] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [googleError, setGoogleError] = useState('');
 
   // Handle custom login simulation
   const handleSimulate = (e) => {
@@ -124,6 +126,39 @@ export default function Profile() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Google Sign-In Card */}
+      <div className="p-6 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4">
+        <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+          <LogIn className="w-4 h-4 text-emerald-400" /> Sign In with Google
+        </h3>
+        <p className="text-xs text-gray-400">
+          Sign in with your real Google account. Your role is determined by whether your email is in the Admin list.
+        </p>
+        <div className="flex justify-center pt-1">
+          <GoogleLogin
+            onSuccess={(credentialResponse) => {
+              setGoogleError('');
+              handleGoogleLogin(credentialResponse.credential)
+                .then(() => setSuccessMsg('Signed in with Google successfully!'))
+                .catch(() => setGoogleError('Sign-in failed. Your email may not be authorised or Google Client ID is not configured yet.'));
+              setTimeout(() => setSuccessMsg(''), 3000);
+            }}
+            onError={() => setGoogleError('Google Sign-In failed. Make sure VITE_GOOGLE_CLIENT_ID is configured.')}
+            useOneTap
+            theme="filled_black"
+            shape="rectangular"
+            size="large"
+            text="signin_with"
+          />
+        </div>
+        {googleError && (
+          <p className="text-xs font-bold text-red-400 text-center">{googleError}</p>
+        )}
+        {successMsg && (
+          <p className="text-xs font-bold text-emerald-400 text-center animate-pulse">{successMsg}</p>
+        )}
       </div>
 
       {/* Simulation Trigger Form */}

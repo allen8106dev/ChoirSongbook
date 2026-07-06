@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Globe, Tag, ChevronRight, X, Volume2 } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
+import { API_BASE_URL } from '../services/api';
 
 export default function SongList() {
   const { songs, languages, categories, isLoading } = useSongbook();
@@ -70,7 +71,7 @@ export default function SongList() {
       params.append('categories', cat);
     });
     const queryStr = params.toString();
-    return `http://localhost:8000/api/songs/pdf${queryStr ? '?' + queryStr : ''}`;
+    return `${API_BASE_URL}/songs/pdf${queryStr ? '?' + queryStr : ''}`;
   }, [searchQuery, selectedLanguages, selectedCategories]);
 
 
