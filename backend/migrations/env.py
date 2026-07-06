@@ -18,8 +18,9 @@ from app import models
 # access to the values within the .ini file in use.
 config = context.config
 
-# Inject settings database URL dynamically
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Inject settings database URL dynamically (escaping '%' for ConfigParser)
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("%", "%%"))
+
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
