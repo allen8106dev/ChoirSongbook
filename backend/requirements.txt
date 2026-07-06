@@ -1,0 +1,17 @@
+fastapi==0.115.8
+uvicorn[standard]==0.34.0
+sqlalchemy==2.0.38
+alembic==1.14.1
+pydantic-settings==2.7.1
+python-jose[cryptography]
+google-auth
+python-multipart
+psycopg2-binary
+httpx
+email-validator
+requests
+reportlab
+
+
+
+
