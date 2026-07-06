@@ -10,7 +10,7 @@ from app import models, crud, schemas
 
 # Initialize database tables on startup (especially for SQLite local)
 # In production with migrations, we use Alembic, but this ensures table creation in local dev
-Base.metadata.create_all(bind=engine)
+#
 
 # Create local upload directory if it does not exist
 if not os.path.exists(settings.UPLOAD_DIR):
@@ -71,6 +71,8 @@ def health_check():
 # Seeding default data on application startup if database is empty
 @app.on_event("startup")
 def seed_data():
+    Base.metadata.create_all(bind=engine)
+    
     db = SessionLocal()
     try:
         # Check if songs table is empty
