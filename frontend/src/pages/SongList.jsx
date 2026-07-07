@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Globe, Tag, ChevronRight, X, Volume2, FileDown } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
@@ -9,6 +9,16 @@ function PdfExportModal({ isOpen, onClose, languages, categories, initialSearch,
   const [search, setSearch] = useState(initialSearch);
   const [selLangs, setSelLangs] = useState(initialLanguages);
   const [selCats, setSelCats] = useState(initialCategories);
+
+  // Sync modal state with current active filters every time it opens
+  useEffect(() => {
+    if (isOpen) {
+      setSearch(initialSearch);
+      setSelLangs(initialLanguages);
+      setSelCats(initialCategories);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
