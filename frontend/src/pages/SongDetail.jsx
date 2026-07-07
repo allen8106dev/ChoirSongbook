@@ -218,55 +218,57 @@ export default function SongDetail() {
     <>
     {fullscreenOverlay}
     <div className="space-y-4 pb-12">
-      {/* Top Navbar */}
-      <div className="flex items-center justify-between border-b border-[#1f212d] pb-3 sticky top-[73px] md:top-0 bg-[#0b0c10] z-20">
-        <button
-          onClick={() => navigate('/')}
-          className="p-2 -ml-2 rounded-xl text-gray-400 hover:text-white hover:bg-[#111219] flex items-center gap-2 text-sm font-semibold transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" /><span>Back</span>
-        </button>
-
-        {isAtLeastAdmin && (
+      <div className="sticky top-14 md:static z-30 -mx-3 px-3 pt-3 pb-3 bg-[#0b0c10]/95 backdrop-blur-md md:bg-transparent md:backdrop-blur-0 md:mx-0 md:px-0 md:pt-0 md:pb-0">
+        {/* Top Navbar */}
+        <div className="flex items-center justify-between border-b border-[#1f212d] pb-3">
           <button
-            onClick={() => navigate(`/admin/edit/${song.id}`)}
-            className="p-2 bg-[#111219] border border-[#1f212d] hover:border-violet-500/40 rounded-xl text-gray-300 hover:text-violet-400 transition-all flex items-center justify-center"
-            title="Edit Song"
+            onClick={() => navigate('/')}
+            className="p-2 -ml-2 rounded-xl text-gray-400 hover:text-white hover:bg-[#111219] flex items-center gap-2 text-sm font-semibold transition-colors"
           >
-            <Edit3 className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4" /><span>Back</span>
           </button>
-        )}
-      </div>
 
-      {/* Compact Title Row */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-[10px] font-black text-violet-400 bg-violet-950/40 border border-violet-900/30 px-2 py-0.5 rounded shrink-0">
-          No. {song.number}
-        </span>
-        <h1 className="text-lg font-extrabold text-white tracking-tight leading-tight flex-1 min-w-0 truncate">
-          {song.title}
-        </h1>
-        {/* Tags inline + star */}
-        <div className="flex items-center gap-1.5 flex-wrap shrink-0">
-          {song.languages.map(l => (
-            <span key={l} className="text-[10px] font-bold text-violet-400 bg-violet-950/20 border border-violet-900/30 px-2 py-0.5 rounded-full">{l}</span>
-          ))}
-          {song.categories?.map(c => (
-            <span key={c} className="text-[10px] font-bold text-indigo-400 bg-indigo-950/20 border border-indigo-900/30 px-2 py-0.5 rounded-full">{c}</span>
-          ))}
-          {currentUser.email && (
+          {isAtLeastAdmin && (
             <button
-              onClick={() => toggleFavourite(song.id)}
-              title={isFavourite(song.id) ? 'Remove from favourites' : 'Add to favourites'}
-              className={`p-1.5 rounded-xl border transition-all ${
-                isFavourite(song.id)
-                  ? 'text-yellow-400 bg-yellow-950/20 border-yellow-700/30'
-                  : 'text-gray-500 bg-transparent border-[#1f212d] hover:text-yellow-400 hover:border-yellow-700/30'
-              }`}
+              onClick={() => navigate(`/admin/edit/${song.id}`)}
+              className="p-2 bg-[#111219] border border-[#1f212d] hover:border-violet-500/40 rounded-xl text-gray-300 hover:text-violet-400 transition-all flex items-center justify-center"
+              title="Edit Song"
             >
-              <Star className={`w-4 h-4 ${isFavourite(song.id) ? 'fill-yellow-400' : ''}`} />
+              <Edit3 className="w-4 h-4" />
             </button>
           )}
+        </div>
+
+        {/* Compact Title Row */}
+        <div className="flex items-center gap-3 flex-wrap pt-3">
+          <span className="text-[10px] font-black text-violet-400 bg-violet-950/40 border border-violet-900/30 px-2 py-0.5 rounded shrink-0">
+            No. {song.number}
+          </span>
+          <h1 className="text-lg font-extrabold text-white tracking-tight leading-tight flex-1 min-w-0 truncate">
+            {song.title}
+          </h1>
+          {/* Tags inline + star */}
+          <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+            {song.languages.map(l => (
+              <span key={l} className="text-[10px] font-bold text-violet-400 bg-violet-950/20 border border-violet-900/30 px-2 py-0.5 rounded-full">{l}</span>
+            ))}
+            {song.categories?.map(c => (
+              <span key={c} className="text-[10px] font-bold text-indigo-400 bg-indigo-950/20 border border-indigo-900/30 px-2 py-0.5 rounded-full">{c}</span>
+            ))}
+            {currentUser.email && (
+              <button
+                onClick={() => toggleFavourite(song.id)}
+                title={isFavourite(song.id) ? 'Remove from favourites' : 'Add to favourites'}
+                className={`p-1.5 rounded-xl border transition-all ${
+                  isFavourite(song.id)
+                    ? 'text-yellow-400 bg-yellow-950/20 border-yellow-700/30'
+                    : 'text-gray-500 bg-transparent border-[#1f212d] hover:text-yellow-400 hover:border-yellow-700/30'
+                }`}
+              >
+                <Star className={`w-4 h-4 ${isFavourite(song.id) ? 'fill-yellow-400' : ''}`} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
