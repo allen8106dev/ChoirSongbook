@@ -1,43 +1,62 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Edit3, Play, Pause, Volume2, Type, Globe, Tag, Sparkles } from 'lucide-react';
+import { ArrowLeft, Edit3, Play, Pause, Volume2, Type, Globe, Tag, Sparkles, Maximize2, Minimize2, X } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
+
+// Parse "=== Heading ===\ntext" format into sections array
+function parseLyricSections(raw) {
+  if (!raw) return [{ heading: '', text: '' }];
+  const sectionRegex = /^===\s*(.+?)\s*===/m;
+  if (!sectionRegex.test(raw)) return [{ heading: '', text: raw }];
+  const parts = raw.split(/\n*===\s*(.+?)\s*===\n*/);
+  const sections = [];
+  for (let i = 1; i < parts.length; i += 2) {
+    sections.push({ heading: parts[i] || '', text: (parts[i + 1] || '').trim() });
+  }
+  return sections.length > 0 ? sections : [{ heading: '', text: raw }];
+}
 
 export default function SongDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { songs, currentUser, isLoading } = useSongbook();
 
-  // Find active song
   const song = songs.find(s => s.id === id);
 
-  // States
   const [fontSize, setFontSize] = useState(18);
   const [activeLyricSection, setActiveLyricSection] = useState(0);
+  const [animating, setAnimating] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
 
-  // Parse lyric sections from stored lyrics string
-  const lyricSections = (() => {
-    if (!song?.lyrics) return [{ heading: '', text: '' }];
-    const sectionRegex = /^===\s*(.+?)\s*===/m;
-    if (!sectionRegex.test(song.lyrics)) return [{ heading: '', text: song.lyrics }];
-    const parts = song.lyrics.split(/\n*===\s*(.+?)\s*===\n*/);
-    const sections = [];
-    for (let i = 1; i < parts.length; i += 2) {
-      sections.push({ heading: parts[i] || '', text: (parts[i + 1] || '').trim() });
-    }
-    return sections.length > 0 ? sections : [{ heading: '', text: song.lyrics }];
-  })();
-
   const audioRef = useRef(null);
+
+  const lyricSections = song ? parseLyricSections(song.lyrics) : [{ heading: '', text: '' }];
+
+  // Smooth section switch with fade animation
+  const switchSection = (idx) => {
+    if (idx === activeLyricSection) return;
+    setAnimating(true);
+    setTimeout(() => {
+      setActiveLyricSection(idx);
+      setAnimating(false);
+    }, 180);
+  };
+
+  // Escape key closes fullscreen
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') setIsFullscreen(false); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-32 space-y-4">
-        <div className="w-12 h-12 rounded-full border-4 border-violet-600/30 border-t-violet-500 animate-spin"></div>
+        <div className="w-12 h-12 rounded-full border-4 border-violet-600/30 border-t-violet-500 animate-spin" />
         <p className="text-gray-400 text-sm font-medium animate-pulse">Loading song details...</p>
       </div>
     );
@@ -55,182 +74,190 @@ export default function SongDetail() {
     );
   }
 
-
   const isAtLeastAdmin = currentUser.role === 'admin' || currentUser.role === 'developer';
 
-  // Font sizing handlers
-  const increaseFontSize = () => setFontSize(prev => Math.min(prev + 2, 32));
-  const decreaseFontSize = () => setFontSize(prev => Math.max(prev - 2, 12));
+  const increaseFontSize = () => setFontSize(p => Math.min(p + 2, 36));
+  const decreaseFontSize = () => setFontSize(p => Math.max(p - 2, 12));
 
-  // Audio Handlers
   const togglePlay = () => {
     if (!audioRef.current) return;
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play().catch(err => console.log('Playback error:', err));
-    }
+    if (isPlaying) audioRef.current.pause();
+    else audioRef.current.play().catch(err => console.log('Playback error:', err));
     setIsPlaying(!isPlaying);
   };
 
-  const handleTimeUpdate = () => {
-    if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
-    }
-  };
-
-  const handleLoadedMetadata = () => {
-    if (audioRef.current) {
-      setDuration(audioRef.current.duration);
-    }
-  };
-
+  const handleTimeUpdate = () => { if (audioRef.current) setCurrentTime(audioRef.current.currentTime); };
+  const handleLoadedMetadata = () => { if (audioRef.current) setDuration(audioRef.current.duration); };
   const handleSeek = (e) => {
     const time = parseFloat(e.target.value);
     setCurrentTime(time);
-    if (audioRef.current) {
-      audioRef.current.currentTime = time;
-    }
+    if (audioRef.current) audioRef.current.currentTime = time;
   };
-
   const handleSpeedChange = (speed) => {
     setPlaybackRate(speed);
-    if (audioRef.current) {
-      audioRef.current.playbackRate = speed;
-    }
+    if (audioRef.current) audioRef.current.playbackRate = speed;
+  };
+  const handleAudioEnded = () => { setIsPlaying(false); setCurrentTime(0); };
+
+  const formatTime = (t) => {
+    if (isNaN(t)) return '0:00';
+    const m = Math.floor(t / 60), s = Math.floor(t % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const handleAudioEnded = () => {
-    setIsPlaying(false);
-    setCurrentTime(0);
-  };
+  // ─── Shared lyric content (used in both normal and fullscreen view) ──────
+  const LyricBody = ({ fullscreen = false }) => (
+    <div
+      key={activeLyricSection}
+      style={{ fontSize: `${fullscreen ? Math.max(fontSize, 20) : fontSize}px` }}
+      className={`lyrics-text font-serif text-gray-100 leading-relaxed tracking-normal whitespace-pre-wrap transition-opacity duration-200 ${animating ? 'opacity-0 translate-y-1' : 'opacity-100 translate-y-0'}`}
+    >
+      {lyricSections[activeLyricSection]?.text || ''}
+    </div>
+  );
 
-  // Formatter for time
-  const formatTime = (timeInSeconds) => {
-    if (isNaN(timeInSeconds)) return '0:00';
-    const mins = Math.floor(timeInSeconds / 60);
-    const secs = Math.floor(timeInSeconds % 60);
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
+  // ─── Section tab strip ───────────────────────────────────────────────────
+  const SectionTabs = ({ size = 'sm' }) => lyricSections.length > 1 ? (
+    <div className="flex items-center gap-1 flex-wrap">
+      {lyricSections.map((section, idx) => (
+        <button
+          key={idx}
+          onClick={() => switchSection(idx)}
+          className={`px-3 py-1.5 rounded-lg font-bold transition-all duration-200 cursor-pointer ${
+            size === 'sm' ? 'text-xs' : 'text-sm'
+          } ${
+            activeLyricSection === idx
+              ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30'
+              : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 border border-white/10'
+          }`}
+        >
+          {section.heading || `Section ${idx + 1}`}
+        </button>
+      ))}
+    </div>
+  ) : null;
 
+  // ─── Fullscreen overlay ──────────────────────────────────────────────────
+  if (isFullscreen) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-[#080910] flex flex-col">
+        {/* Fullscreen top bar */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 shrink-0">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-black text-violet-400 bg-violet-950/40 border border-violet-900/30 px-2 py-0.5 rounded">
+              No. {song.number}
+            </span>
+            <span className="text-sm font-bold text-white">{song.title}</span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <SectionTabs size="sm" />
+
+            {/* Font controls */}
+            <div className="flex items-center gap-1.5">
+              <button onClick={decreaseFontSize} disabled={fontSize <= 12} className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 font-bold border border-white/10 flex items-center justify-center text-xs text-gray-300">A-</button>
+              <span className="text-[10px] font-bold text-gray-500 w-8 text-center">{fontSize}px</span>
+              <button onClick={increaseFontSize} disabled={fontSize >= 36} className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 font-bold border border-white/10 flex items-center justify-center text-xs text-gray-300">A+</button>
+            </div>
+
+            <button
+              onClick={() => setIsFullscreen(false)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white text-xs font-bold transition-all"
+            >
+              <Minimize2 className="w-3.5 h-3.5" /> Exit
+            </button>
+          </div>
+        </div>
+
+        {/* Fullscreen lyrics body */}
+        <div className="flex-1 overflow-y-auto px-10 py-8 md:px-20 md:py-12">
+          <LyricBody fullscreen />
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Normal view ─────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 pb-12">
       {/* Top Navbar */}
-      <div className="flex items-center justify-between border-b border-[#1f212d] pb-4 sticky top-[73px] md:top-0 bg-[#0b0c10] z-20">
+      <div className="flex items-center justify-between border-b border-[#1f212d] pb-3 sticky top-[73px] md:top-0 bg-[#0b0c10] z-20">
         <button
           onClick={() => navigate('/')}
           className="p-2 -ml-2 rounded-xl text-gray-400 hover:text-white hover:bg-[#111219] flex items-center gap-2 text-sm font-semibold transition-colors"
         >
-          <ArrowLeft className="w-5 h-5" />
-          <span>Back</span>
+          <ArrowLeft className="w-4 h-4" /><span>Back</span>
         </button>
 
-        <div className="flex items-center gap-2">
-          {/* Multi-section lyric tabs (shown when song has multiple sections) */}
-          {lyricSections.length > 1 && (
-            <div className="flex bg-[#111219] border border-[#1f212d] rounded-xl p-1 gap-1 shrink-0">
-              {lyricSections.map((section, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setActiveLyricSection(idx)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    activeLyricSection === idx ? 'bg-violet-600 text-white' : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {section.heading || `Section ${idx + 1}`}
-                </button>
-              ))}
-            </div>
-          )}
+        {isAtLeastAdmin && (
+          <button
+            onClick={() => navigate(`/admin/edit/${song.id}`)}
+            className="p-2 bg-[#111219] border border-[#1f212d] hover:border-violet-500/40 rounded-xl text-gray-300 hover:text-violet-400 transition-all flex items-center justify-center"
+            title="Edit Song"
+          >
+            <Edit3 className="w-4 h-4" />
+          </button>
+        )}
+      </div>
 
-          {/* Edit Song for Admins */}
-          {isAtLeastAdmin && (
-            <button
-              onClick={() => navigate(`/admin/edit/${song.id}`)}
-              className="p-2.5 bg-[#111219] border border-[#1f212d] hover:border-violet-500/40 rounded-xl text-gray-300 hover:text-violet-400 transition-all flex items-center justify-center"
-              title="Edit Song"
-            >
-              <Edit3 className="w-4.5 h-4.5" />
-            </button>
-          )}
+      {/* Compact Title Row */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="text-[10px] font-black text-violet-400 bg-violet-950/40 border border-violet-900/30 px-2 py-0.5 rounded shrink-0">
+          No. {song.number}
+        </span>
+        <h1 className="text-lg font-extrabold text-white tracking-tight leading-tight flex-1 min-w-0 truncate">
+          {song.title}
+        </h1>
+        {/* Tags inline */}
+        <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+          {song.languages.map(l => (
+            <span key={l} className="text-[10px] font-bold text-violet-400 bg-violet-950/20 border border-violet-900/30 px-2 py-0.5 rounded-full">{l}</span>
+          ))}
+          {song.categories?.map(c => (
+            <span key={c} className="text-[10px] font-bold text-indigo-400 bg-indigo-950/20 border border-indigo-900/30 px-2 py-0.5 rounded-full">{c}</span>
+          ))}
         </div>
       </div>
 
-      {/* Title & Metadata Card */}
-      <div className="p-6 bg-gradient-to-br from-[#12131b] to-[#181923] border border-[#1f212d] rounded-3xl space-y-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2.5">
-            <span className="text-xs font-black text-violet-400 bg-violet-950/40 border border-violet-900/30 px-2 py-0.5 rounded-md">
-              No. {song.number}
+      {/* Main Lyrics Card */}
+      <div className="glass-panel border border-[#1f212d] rounded-3xl overflow-hidden">
+        {/* Card toolbar: section tabs + font controls + fullscreen */}
+        <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-[#1f212d]/60 bg-[#0e0f16]/60 flex-wrap">
+          {/* Section tabs */}
+          <SectionTabs size="sm" />
+          {lyricSections.length === 1 && (
+            <span className="text-[10px] font-bold text-gray-600 uppercase tracking-wider flex items-center gap-1">
+              <Type className="w-3 h-3" /> Lyrics
             </span>
-          </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight leading-tight">
-            {song.title}
-          </h1>
-        </div>
-
-        {/* Tags Block */}
-        <div className="flex flex-wrap items-center gap-3 text-xs border-t border-[#1f212d]/60 pt-3.5">
-          <div className="flex items-center gap-1.5 text-gray-400">
-            <Globe className="w-3.5 h-3.5 text-violet-400" />
-            {song.languages.map((l, i) => (
-              <span key={l} className="font-bold text-white">
-                {l}{i < song.languages.length - 1 ? ', ' : ''}
-              </span>
-            ))}
-          </div>
-          {song.categories && song.categories.length > 0 && (
-            <>
-              <div className="h-3 w-px bg-[#1f212d]"></div>
-              <div className="flex items-center gap-1.5 text-gray-400">
-                <Tag className="w-3.5 h-3.5 text-indigo-400" />
-                {song.categories.map((c, i) => (
-                  <span key={c} className="font-bold text-white">
-                    {c}{i < song.categories.length - 1 ? ', ' : ''}
-                  </span>
-                ))}
-              </div>
-            </>
           )}
-        </div>
-      </div>
 
-      {/* Typography Controls & Display Area */}
-      <div className="glass-panel border border-[#1f212d] rounded-3xl p-6 md:p-8 space-y-6">
-        {/* Font resize toolbar */}
-        <div className="flex items-center justify-between border-b border-[#1f212d]/60 pb-3">
-          <span className="text-xs text-gray-500 font-bold uppercase tracking-wider flex items-center gap-1.5">
-            <Type className="w-4 h-4 text-violet-400" /> Font Adjustment
-          </span>
-          <div className="flex items-center gap-2">
+          {/* Right controls */}
+          <div className="flex items-center gap-2 ml-auto">
+            {/* Font controls */}
+            <div className="flex items-center gap-1">
+              <button onClick={decreaseFontSize} disabled={fontSize <= 12} className="w-7 h-7 rounded-lg bg-[#111219] hover:bg-[#1a1b26] disabled:opacity-40 font-bold border border-[#1f212d] flex items-center justify-center text-[10px] text-gray-400">A-</button>
+              <span className="text-[10px] font-bold text-gray-500 px-1 min-w-[32px] text-center">{fontSize}px</span>
+              <button onClick={increaseFontSize} disabled={fontSize >= 36} className="w-7 h-7 rounded-lg bg-[#111219] hover:bg-[#1a1b26] disabled:opacity-40 font-bold border border-[#1f212d] flex items-center justify-center text-[10px] text-gray-400">A+</button>
+            </div>
+
+            {/* Fullscreen button */}
             <button
-              onClick={decreaseFontSize}
-              disabled={fontSize <= 12}
-              className="w-8 h-8 rounded-lg bg-[#111219] hover:bg-[#1a1b26] disabled:opacity-40 font-bold border border-[#1f212d] flex items-center justify-center text-xs"
+              onClick={() => setIsFullscreen(true)}
+              title="Fullscreen lyrics"
+              className="w-7 h-7 rounded-lg bg-[#111219] hover:bg-violet-950/30 hover:border-violet-500/40 border border-[#1f212d] flex items-center justify-center text-gray-400 hover:text-violet-400 transition-all"
             >
-              A-
-            </button>
-            <span className="text-xs font-bold text-gray-400 px-1">{fontSize}px</span>
-            <button
-              onClick={increaseFontSize}
-              disabled={fontSize >= 32}
-              className="w-8 h-8 rounded-lg bg-[#111219] hover:bg-[#1a1b26] disabled:opacity-40 font-bold border border-[#1f212d] flex items-center justify-center text-xs"
-            >
-              A+
+              <Maximize2 className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
-        {/* Lyric Content Body */}
-        <div
-          style={{ fontSize: `${fontSize}px` }}
-          className="lyrics-text font-serif text-gray-100 px-2 leading-relaxed tracking-normal select-none whitespace-pre-wrap"
-        >
-          {lyricSections[activeLyricSection]?.text || lyricSections[0]?.text || ''}
+        {/* Lyrics body */}
+        <div className="px-6 py-6 md:px-10 md:py-8">
+          <LyricBody />
         </div>
       </div>
 
-      {/* Spotify-like Floating/Sticky Audio Player Bar */}
+      {/* Audio Player */}
       {song.audioUrl ? (
         <div className="p-4 bg-[#111219]/90 backdrop-blur-md border border-[#1f212d] rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xl">
           <audio
@@ -240,7 +267,6 @@ export default function SongDetail() {
             onLoadedMetadata={handleLoadedMetadata}
             onEnded={handleAudioEnded}
           />
-          
           <div className="flex items-center gap-3">
             <button
               onClick={togglePlay}
@@ -256,11 +282,8 @@ export default function SongDetail() {
             </div>
           </div>
 
-          {/* Seek slider */}
           <div className="flex-1 flex items-center gap-3">
-            <span className="text-[10px] text-gray-500 font-mono w-8 text-right">
-              {formatTime(currentTime)}
-            </span>
+            <span className="text-[10px] text-gray-500 font-mono w-8 text-right">{formatTime(currentTime)}</span>
             <input
               type="range"
               min={0}
@@ -269,17 +292,14 @@ export default function SongDetail() {
               onChange={handleSeek}
               className="flex-1 accent-violet-600 bg-gray-800 h-1 rounded-lg cursor-pointer appearance-none"
             />
-            <span className="text-[10px] text-gray-500 font-mono w-8">
-              {formatTime(duration)}
-            </span>
+            <span className="text-[10px] text-gray-500 font-mono w-8">{formatTime(duration)}</span>
           </div>
 
-          {/* Speed settings / Playback rate */}
           <div className="flex items-center gap-1.5 self-end md:self-auto border-t md:border-t-0 pt-2.5 md:pt-0 border-[#1f212d]/60">
             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mr-1.5 flex items-center gap-1">
               <Volume2 className="w-3.5 h-3.5 text-gray-400" /> Speed:
             </span>
-            {[0.8, 1.0, 1.2].map((speed) => (
+            {[0.8, 1.0, 1.2].map(speed => (
               <button
                 key={speed}
                 onClick={() => handleSpeedChange(speed)}

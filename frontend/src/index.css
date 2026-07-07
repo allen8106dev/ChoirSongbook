@@ -79,4 +79,15 @@ body {
   line-height: 1.8;
   letter-spacing: 0.015em;
   white-space: pre-wrap;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+/* Lyric section fade-in-up on mount */
+@keyframes lyric-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.lyrics-text {
+  animation: lyric-fade-in 0.22s ease forwards;
 }
