@@ -196,14 +196,16 @@ export default function SongForm() {
             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
               <Globe className="w-3.5 h-3.5 text-violet-400" /> Languages
             </label>
-            <div className="flex flex-wrap gap-1.5 min-h-[28px]">
-              {songLanguages.map(lang => (
+            {songLanguages.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {songLanguages.map(lang => (
                 <span key={lang} className="inline-flex items-center gap-1 text-xs font-bold text-violet-400 bg-violet-950/30 border border-violet-900/40 px-2 py-0.5 rounded-full">
                   {lang}
                   <button type="button" onClick={() => removeLanguage(lang)} className="hover:text-red-400"><X className="w-3 h-3" /></button>
                 </span>
               ))}
             </div>
+            )}
             <div className="flex gap-2">
               <input
                 type="text"
@@ -231,14 +233,16 @@ export default function SongForm() {
             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
               <Tag className="w-3.5 h-3.5 text-indigo-400" /> Categories
             </label>
-            <div className="flex flex-wrap gap-1.5 min-h-[28px]">
-              {songCategories.map(cat => (
+            {songCategories.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {songCategories.map(cat => (
                 <span key={cat} className="inline-flex items-center gap-1 text-xs font-bold text-indigo-400 bg-indigo-950/30 border border-indigo-900/40 px-2 py-0.5 rounded-full">
                   {cat}
                   <button type="button" onClick={() => removeCategory(cat)} className="hover:text-red-400"><X className="w-3 h-3" /></button>
                 </span>
               ))}
             </div>
+            )}
             <div className="flex gap-2">
               <input
                 type="text"
