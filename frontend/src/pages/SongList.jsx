@@ -1,9 +1,201 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Globe, Tag, ChevronRight, X, Volume2 } from 'lucide-react';
+import { Search, Globe, Tag, ChevronRight, X, Volume2, FileDown } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 import { API_BASE_URL } from '../services/api';
 
+// ─── PDF Export Modal ────────────────────────────────────────────────────────
+function PdfExportModal({ isOpen, onClose, languages, categories, initialSearch, initialLanguages, initialCategories }) {
+  const [search, setSearch] = useState(initialSearch);
+  const [selLangs, setSelLangs] = useState(initialLanguages);
+  const [selCats, setSelCats] = useState(initialCategories);
+
+  if (!isOpen) return null;
+
+  const toggleLang = (lang) =>
+    setSelLangs(prev => prev.includes(lang) ? prev.filter(l => l !== lang) : [...prev, lang]);
+
+  const toggleCat = (cat) =>
+    setSelCats(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
+
+  const activeCount = selLangs.length + selCats.length + (search ? 1 : 0);
+
+  const handleDownload = () => {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    selLangs.forEach(l => params.append('languages', l));
+    selCats.forEach(c => params.append('categories', c));
+    const qs = params.toString();
+    window.open(`${API_BASE_URL}/songs/pdf${qs ? '?' + qs : ''}`, '_blank');
+    onClose();
+  };
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal Panel */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+        <div
+          className="pointer-events-auto w-full max-w-lg bg-[#111219] border border-[#1f212d] rounded-3xl shadow-2xl shadow-black/60 flex flex-col overflow-hidden animate-scale-in"
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Modal Header */}
+          <div className="flex items-center justify-between px-6 py-5 border-b border-[#1f212d]">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
+                <FileDown className="w-4.5 h-4.5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-base leading-tight">Export PDF</h3>
+                <p className="text-xs text-gray-500">
+                  {activeCount === 0 ? 'All songs will be exported' : `${activeCount} filter${activeCount > 1 ? 's' : ''} applied`}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-500 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Modal Body */}
+          <div className="px-6 py-5 space-y-5 overflow-y-auto max-h-[60vh]">
+
+            {/* Search */}
+            <div>
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <Search className="w-3 h-3" /> Keyword Search
+              </label>
+              <div className="relative group">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-violet-400 transition-colors" />
+                <input
+                  type="text"
+                  placeholder="Filter by title, lyrics, tags..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="w-full pl-10 pr-9 py-3 bg-[#0c0d13] border border-[#1f212d] focus:border-violet-500 rounded-xl text-sm placeholder-gray-600 focus:outline-none transition-all"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Language Filters */}
+            <div>
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <Globe className="w-3 h-3" /> Language
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setSelLangs([])}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                    selLangs.length === 0
+                      ? 'bg-violet-600 text-white shadow-sm shadow-violet-500/20'
+                      : 'bg-[#0c0d13] text-gray-400 hover:text-white border border-[#1f212d]'
+                  }`}
+                >
+                  All
+                </button>
+                {languages.map(lang => (
+                  <button
+                    key={lang}
+                    onClick={() => toggleLang(lang)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                      selLangs.includes(lang)
+                        ? 'bg-violet-600 text-white shadow-sm shadow-violet-500/20'
+                        : 'bg-[#0c0d13] text-gray-400 hover:text-white border border-[#1f212d]'
+                    }`}
+                  >
+                    {lang}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Category Filters */}
+            <div>
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <Tag className="w-3 h-3" /> Category
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setSelCats([])}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                    selCats.length === 0
+                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
+                      : 'bg-[#0c0d13] text-gray-400 hover:text-white border border-[#1f212d]'
+                  }`}
+                >
+                  All
+                </button>
+                {categories.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => toggleCat(cat)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                      selCats.includes(cat)
+                        ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
+                        : 'bg-[#0c0d13] text-gray-400 hover:text-white border border-[#1f212d]'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Active filters summary */}
+            {activeCount > 0 && (
+              <div className="flex items-center justify-between pt-1">
+                <p className="text-xs text-gray-500">
+                  Only songs matching the selected filters will be included.
+                </p>
+                <button
+                  onClick={() => { setSearch(''); setSelLangs([]); setSelCats([]); }}
+                  className="text-xs font-bold text-violet-400 hover:text-violet-300 transition-colors shrink-0 ml-3"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Modal Footer */}
+          <div className="px-6 py-4 border-t border-[#1f212d] flex items-center justify-end gap-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-400 hover:text-white hover:bg-white/5 transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDownload}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-violet-500/20 transition-all active:scale-95"
+            >
+              <FileDown className="w-4 h-4" />
+              Download PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── Main SongList Component ─────────────────────────────────────────────────
 export default function SongList() {
   const { songs, languages, categories, isLoading } = useSongbook();
   const navigate = useNavigate();
@@ -12,6 +204,9 @@ export default function SongList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLanguages, setSelectedLanguages] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
+
+  // PDF modal state
+  const [showPdfModal, setShowPdfModal] = useState(false);
 
   // Toggle Language selection
   const toggleLanguage = (lang) => {
@@ -37,53 +232,31 @@ export default function SongList() {
   // Filtered and sorted songs
   const filteredSongs = useMemo(() => {
     return songs.filter(song => {
-      // Search match
       const query = searchQuery.toLowerCase().trim();
-      const matchesSearch = !query || 
+      const matchesSearch = !query ||
         song.title.toLowerCase().includes(query) ||
         song.lyrics.toLowerCase().includes(query) ||
         (song.transliteration && song.transliteration.toLowerCase().includes(query)) ||
         song.languages.some(lang => lang.toLowerCase().includes(query)) ||
         song.categories.some(cat => cat.toLowerCase().includes(query));
 
-      // Language match (OR check within selected languages)
-      const matchesLanguage = selectedLanguages.length === 0 || 
+      const matchesLanguage = selectedLanguages.length === 0 ||
         song.languages.some(lang => selectedLanguages.includes(lang));
 
-      // Category match (OR check within selected categories)
-      const matchesCategory = selectedCategories.length === 0 || 
+      const matchesCategory = selectedCategories.length === 0 ||
         song.categories.some(cat => selectedCategories.includes(cat));
 
       return matchesSearch && matchesLanguage && matchesCategory;
     });
   }, [songs, searchQuery, selectedLanguages, selectedCategories]);
 
-  // Dynamic filtered PDF export URL
-  const exportPdfUrl = useMemo(() => {
-    const params = new URLSearchParams();
-    if (searchQuery) {
-      params.append('search', searchQuery);
-    }
-    selectedLanguages.forEach(lang => {
-      params.append('languages', lang);
-    });
-    selectedCategories.forEach(cat => {
-      params.append('categories', cat);
-    });
-    const queryStr = params.toString();
-    return `${API_BASE_URL}/songs/pdf${queryStr ? '?' + queryStr : ''}`;
-  }, [searchQuery, selectedLanguages, selectedCategories]);
-
-
-  // Group songs by starting letter for list organization
+  // Group songs by starting letter
   const groupedSongs = useMemo(() => {
     const groups = {};
     filteredSongs.forEach(song => {
       const firstLetter = song.title.charAt(0).toUpperCase();
       const key = /[A-Z]/.test(firstLetter) ? firstLetter : '#';
-      if (!groups[key]) {
-        groups[key] = [];
-      }
+      if (!groups[key]) groups[key] = [];
       groups[key].push(song);
     });
     return Object.keys(groups).sort().reduce((acc, key) => {
@@ -102,27 +275,32 @@ export default function SongList() {
   }
 
   return (
-
     <div className="space-y-6">
+      {/* PDF Export Modal */}
+      <PdfExportModal
+        isOpen={showPdfModal}
+        onClose={() => setShowPdfModal(false)}
+        languages={languages}
+        categories={categories}
+        initialSearch={searchQuery}
+        initialLanguages={selectedLanguages}
+        initialCategories={selectedCategories}
+      />
+
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex flex-col gap-1.5">
           <h2 className="text-3xl font-extrabold tracking-tight text-white">Songbook</h2>
           <p className="text-sm text-gray-400">Search and browse lyrics and reference tracks</p>
         </div>
-        <a
-          href={exportPdfUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 active:scale-98 text-white font-bold text-xs rounded-xl shadow-md transition-all self-start sm:self-auto cursor-pointer"
+        <button
+          onClick={() => setShowPdfModal(true)}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md transition-all self-start sm:self-auto cursor-pointer"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
+          <FileDown className="w-4 h-4" />
           Export PDF
-        </a>
+        </button>
       </div>
-
 
       {/* Interactive Controls (Search & Quick Filter Pills) */}
       <div className="space-y-4">
@@ -148,7 +326,7 @@ export default function SongList() {
 
         {/* Filters Panel */}
         <div className="space-y-3 p-4 bg-[#111219]/40 border border-[#1f212d]/60 rounded-2xl">
-          {/* Languages Filters */}
+          {/* Language Filters */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mr-1 flex items-center gap-1">
               <Globe className="w-3 h-3" /> Language:
@@ -265,13 +443,11 @@ export default function SongList() {
                           {song.title}
                         </h3>
                         <div className="flex flex-wrap items-center gap-1.5">
-                          {/* Languages */}
                           {song.languages.map((l) => (
                             <span key={l} className="text-[10px] font-bold text-violet-400 bg-violet-950/20 border border-violet-900/30 px-1.5 py-0.25 rounded">
                               {l}
                             </span>
                           ))}
-                          {/* Categories */}
                           {song.categories.map((c) => (
                             <span key={c} className="text-[10px] font-bold text-indigo-400 bg-indigo-950/20 border border-indigo-900/30 px-1.5 py-0.25 rounded">
                               {c}

@@ -1,7 +1,6 @@
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { Music, PlusCircle, Settings, User, BookOpen } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
-import { API_BASE_URL } from '../services/api';
 
 export default function Layout({ children }) {
   const { currentUser } = useSongbook();
@@ -53,17 +52,6 @@ export default function Layout({ children }) {
               <span>{item.label}</span>
             </NavLink>
           ))}
-          <a
-            href={`${API_BASE_URL}/songs/pdf`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold text-gray-400 hover:text-white hover:bg-white/5 border-l-4 border-transparent transition-all duration-200"
-          >
-            <svg className="w-5 h-5 shrink-0 text-violet-400/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <span>Printable PDF</span>
-          </a>
         </nav>
 
 
