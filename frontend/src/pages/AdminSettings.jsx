@@ -66,8 +66,8 @@ export default function AdminSettings() {
         </div>
       ) : (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <span className={`text-xs font-semibold break-all min-w-0 ${accentClass || 'text-gray-300'}`}>{name}</span>
-          <div className="flex gap-1.5 shrink-0">
+          <span className={`text-xs font-semibold break-words min-w-0 ${accentClass || 'text-gray-300'}`}>{name}</span>
+          <div className="flex gap-1.5 shrink-0 self-start sm:self-auto">
             <button onClick={onEdit} className="p-1.5 rounded-lg text-gray-500 hover:text-violet-400 hover:bg-violet-950/20 transition-colors" title="Rename">
               <Edit2 className="w-3.5 h-3.5" />
             </button>
@@ -108,7 +108,7 @@ export default function AdminSettings() {
         <div className="grid gap-2">
           {adminEmails.map((email) => (
             <div key={email} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-gray-900/30 border border-[#1f212d]/60 rounded-xl">
-              <span className="text-xs font-semibold text-gray-300 break-all min-w-0">{email}</span>
+              <span className="text-xs font-semibold text-gray-300 break-words min-w-0">{email}</span>
               {email !== 'allen@example.com' ? (
                 <button
                   onClick={() => removeAdminEmail(email)}
