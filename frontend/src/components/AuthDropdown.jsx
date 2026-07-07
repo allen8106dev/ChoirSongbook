@@ -49,7 +49,7 @@ export default function AuthDropdown() {
 
       {/* Dropdown panel */}
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-72 bg-[#111219] border border-[#1f212d] rounded-2xl shadow-2xl shadow-black/60 z-[200] overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-72 bg-[#111219] border border-[#1f212d] rounded-2xl shadow-2xl shadow-black/60 z-[200] overflow-hidden md:left-0 md:right-auto">
           {isSignedIn ? (
             <>
               {/* Signed-in user info */}
