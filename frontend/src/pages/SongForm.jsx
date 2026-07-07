@@ -71,7 +71,7 @@ export default function SongForm() {
   // Audio
   const [selectedFile, setSelectedFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
-  const showAudioComingSoon = !isEditMode;
+  const showAudioComingSoon = true;
   const [audioSource, setAudioSource] = useState(() => {
     if (songToEdit?.audioUrl && !songToEdit.audioUrl.includes('/uploads/')) return 'url';
     return 'upload';
