@@ -218,7 +218,7 @@ export default function SongDetail() {
     <>
     {fullscreenOverlay}
     <div className="space-y-4 pb-12">
-      <div className="sticky top-14 md:static z-30 -mx-3 px-3 pt-3 pb-3 bg-[#0b0c10]/95 backdrop-blur-md md:bg-transparent md:backdrop-blur-0 md:mx-0 md:px-0 md:pt-0 md:pb-0">
+      <div className="z-30">
         {/* Top Navbar */}
         <div className="flex items-center justify-between border-b border-[#1f212d] pb-3">
           <button
