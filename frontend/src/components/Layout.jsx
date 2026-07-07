@@ -18,7 +18,7 @@ export default function Layout({ children }) {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-[#0b0c10] text-[#eaeaea] font-sans antialiased selection:bg-violet-600 selection:text-white">
+    <div className="min-h-screen flex flex-col md:flex-row bg-[#0b0c10] text-[#eaeaea] font-sans antialiased selection:bg-violet-600 selection:text-white overflow-x-hidden">
 
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex md:w-64 md:flex-col bg-[#111219] border-r border-[#1f212d] shrink-0">
@@ -60,7 +60,7 @@ export default function Layout({ children }) {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 pb-20 md:pb-0">
+      <div className="flex-1 flex flex-col min-w-0 pb-20 md:pb-0 overflow-x-hidden">
         {/* Mobile Header */}
         <header className="md:hidden flex items-center justify-between px-4 py-3 bg-[#111219] border-b border-[#1f212d] sticky top-0 z-30">
           <Link to="/" className="flex items-center gap-2">
@@ -73,13 +73,13 @@ export default function Layout({ children }) {
         </header>
 
         {/* Dynamic Route Container */}
-        <main className="flex-1 p-5 md:p-10 max-w-4xl mx-auto w-full animate-fade-in">
+        <main className="flex-1 p-5 md:p-10 max-w-4xl mx-auto w-full animate-fade-in overflow-x-hidden">
           {children}
         </main>
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#111219]/95 backdrop-blur-md border-t border-[#1f212d] flex items-center justify-around px-4 z-40">
+      <nav className="md:hidden fixed inset-x-0 bottom-0 h-16 w-full max-w-full box-border bg-[#111219]/95 backdrop-blur-md border-t border-[#1f212d] flex items-center justify-around px-3 z-40 overflow-x-hidden">
         {navItems.map((item) => {
           const isActive = item.exact
             ? location.pathname === item.to
@@ -88,12 +88,12 @@ export default function Layout({ children }) {
             <Link
               key={item.to}
               to={item.to}
-              className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-center transition-all ${
+              className={`flex flex-col items-center justify-center flex-1 min-w-0 h-full py-1 text-center transition-all overflow-hidden ${
                 isActive ? 'text-violet-400' : 'text-gray-500'
               }`}
             >
-              <item.icon className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] font-medium tracking-wide">{item.label}</span>
+              <item.icon className="w-5 h-5 mb-0.5 shrink-0" />
+              <span className="w-full truncate text-[10px] font-medium tracking-wide">{item.label}</span>
             </Link>
           );
         })}
