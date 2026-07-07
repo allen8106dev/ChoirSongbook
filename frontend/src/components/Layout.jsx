@@ -1,6 +1,7 @@
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { Music, PlusCircle, Settings, User, BookOpen } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
+import AuthDropdown from './AuthDropdown';
 
 export default function Layout({ children }) {
   const { currentUser } = useSongbook();
@@ -13,35 +14,38 @@ export default function Layout({ children }) {
     { to: '/', label: 'Songbook', icon: BookOpen, exact: true },
     ...(isAtLeastAdmin ? [{ to: '/admin/add', label: 'Add Song', icon: PlusCircle }] : []),
     ...(isDeveloper ? [{ to: '/admin/settings', label: 'Console', icon: Settings }] : []),
-    { to: '/profile', label: 'Profile', icon: User }
+    { to: '/profile', label: 'Favourites', icon: User }
   ];
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-[#0b0c10] text-[#eaeaea] font-sans antialiased selection:bg-violet-600 selection:text-white">
+
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex md:w-64 md:flex-col bg-[#111219] border-r border-[#1f212d] shrink-0">
-        <div className="p-6 border-b border-[#1f212d]">
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20 group-hover:scale-105 transition-transform duration-300">
-              <Music className="w-5 h-5 text-white" />
+        {/* Sidebar header with logo + auth dropdown */}
+        <div className="px-5 py-4 border-b border-[#1f212d] flex items-center justify-between gap-2">
+          <Link to="/" className="flex items-center gap-3 group min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20 group-hover:scale-105 transition-transform duration-300 shrink-0">
+              <Music className="w-4.5 h-4.5 text-white" />
             </div>
-            <div>
-              <h1 className="font-bold text-lg tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+            <div className="min-w-0">
+              <h1 className="font-bold text-base tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent leading-tight truncate">
                 Choir Songbook
               </h1>
-              <p className="text-xs text-gray-500 font-medium">Mobile-First Hymnal</p>
+              <p className="text-[10px] text-gray-500 font-medium">Mobile-First Hymnal</p>
             </div>
           </Link>
+          <AuthDropdown />
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-1.5">
+        <nav className="flex-1 px-4 py-5 space-y-1">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.exact}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
                   isActive
                     ? 'bg-gradient-to-r from-violet-600/10 to-indigo-600/10 border-l-4 border-violet-500 text-violet-400 font-bold'
                     : 'text-gray-400 hover:text-white hover:bg-white/5 border-l-4 border-transparent'
@@ -53,57 +57,23 @@ export default function Layout({ children }) {
             </NavLink>
           ))}
         </nav>
-
-
-        {/* User Identity Info */}
-        <div className="p-4 border-t border-[#1f212d] bg-[#0c0d13]">
-          <div className="flex items-center gap-3 p-2.5 rounded-xl glass-panel">
-            <div className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center font-bold text-sm text-violet-400 border border-white/5 uppercase">
-              {currentUser.email ? currentUser.email.charAt(0) : 'U'}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-white truncate">{currentUser.email || 'Guest User'}</p>
-              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase mt-0.5 border ${
-                currentUser.role === 'developer'
-                  ? 'bg-violet-950/40 text-violet-400 border-violet-500/30'
-                  : currentUser.role === 'admin'
-                  ? 'bg-indigo-950/40 text-indigo-400 border-indigo-500/30'
-                  : 'bg-gray-900/60 text-gray-400 border-gray-800'
-              }`}>
-                {currentUser.role}
-              </span>
-            </div>
-          </div>
-        </div>
       </aside>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 pb-20 md:pb-0">
         {/* Mobile Header */}
-        <header className="md:hidden flex items-center justify-between px-6 py-4 bg-[#111219] border-b border-[#1f212d] sticky top-0 z-30">
+        <header className="md:hidden flex items-center justify-between px-4 py-3 bg-[#111219] border-b border-[#1f212d] sticky top-0 z-30">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-md">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-md shrink-0">
               <Music className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold text-base tracking-tight text-white">
-              Choir Book
-            </span>
+            <span className="font-bold text-base tracking-tight text-white">Choir Book</span>
           </Link>
-          <div className="flex items-center gap-2">
-            <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
-              currentUser.role === 'developer'
-                ? 'bg-violet-950/40 text-violet-400 border-violet-500/30'
-                : currentUser.role === 'admin'
-                ? 'bg-indigo-950/40 text-indigo-400 border-indigo-500/30'
-                : 'bg-gray-900/60 text-gray-400 border-gray-800'
-            }`}>
-              {currentUser.role}
-            </span>
-          </div>
+          <AuthDropdown />
         </header>
 
         {/* Dynamic Route Container */}
-        <main className="flex-1 p-6 md:p-10 max-w-4xl mx-auto w-full animate-fade-in">
+        <main className="flex-1 p-5 md:p-10 max-w-4xl mx-auto w-full animate-fade-in">
           {children}
         </main>
       </div>
@@ -111,8 +81,8 @@ export default function Layout({ children }) {
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#111219]/95 backdrop-blur-md border-t border-[#1f212d] flex items-center justify-around px-4 z-40">
         {navItems.map((item) => {
-          const isActive = item.exact 
-            ? location.pathname === item.to 
+          const isActive = item.exact
+            ? location.pathname === item.to
             : location.pathname.startsWith(item.to);
           return (
             <Link
@@ -122,10 +92,8 @@ export default function Layout({ children }) {
                 isActive ? 'text-violet-400' : 'text-gray-500'
               }`}
             >
-              <item.icon className="w-5.5 h-5.5 mb-0.5" />
-              <span className="text-[10px] font-medium tracking-wide">
-                {item.label}
-              </span>
+              <item.icon className="w-5 h-5 mb-0.5" />
+              <span className="text-[10px] font-medium tracking-wide">{item.label}</span>
             </Link>
           );
         })}

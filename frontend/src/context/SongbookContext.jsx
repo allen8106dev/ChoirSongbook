@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useMemo } from 'react';
+import { createContext, useContext, useState, useMemo, useEffect } from 'react';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService, API_BASE_URL } from '../services/api';
@@ -19,6 +19,31 @@ export const SongbookProvider = ({ children }) => {
 
   // Restore JWT session token from storage on load (if exists)
   // No auto-simulation — only real Google sign-in sets a token
+
+  // Favourites — stored per email in localStorage
+  const [favourites, setFavourites] = useState([]);
+
+  useEffect(() => {
+    if (currentUser.email) {
+      const stored = localStorage.getItem(`cs_favs_${currentUser.email}`);
+      setFavourites(stored ? JSON.parse(stored) : []);
+    } else {
+      setFavourites([]);
+    }
+  }, [currentUser.email]);
+
+  const toggleFavourite = (songId) => {
+    if (!currentUser.email) return;
+    setFavourites(prev => {
+      const next = prev.includes(songId)
+        ? prev.filter(id => id !== songId)
+        : [...prev, songId];
+      localStorage.setItem(`cs_favs_${currentUser.email}`, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const isFavourite = (songId) => favourites.includes(songId);
 
   // --- React Query Data Fetching Queries ---
   
@@ -222,6 +247,9 @@ export const SongbookProvider = ({ children }) => {
         currentUser,
         adminEmails,
         isLoading,
+        favourites,
+        toggleFavourite,
+        isFavourite,
         handleGoogleLogin,
         handleLogout,
         addSong,

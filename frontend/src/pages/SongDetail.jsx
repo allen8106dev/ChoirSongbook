@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Edit3, Play, Pause, Volume2, Type, Globe, Tag, Sparkles, Maximize2, Minimize2 } from 'lucide-react';
+import { ArrowLeft, Edit3, Play, Pause, Volume2, Type, Globe, Tag, Sparkles, Maximize2, Minimize2, Star } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 
 // Parse "=== Heading ===\ntext" format into sections array
@@ -20,7 +20,7 @@ function parseLyricSections(raw) {
 export default function SongDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { songs, currentUser, isLoading } = useSongbook();
+  const { songs, currentUser, isLoading, toggleFavourite, isFavourite } = useSongbook();
 
   const song = songs.find(s => s.id === id);
 
@@ -246,7 +246,7 @@ export default function SongDetail() {
         <h1 className="text-lg font-extrabold text-white tracking-tight leading-tight flex-1 min-w-0 truncate">
           {song.title}
         </h1>
-        {/* Tags inline */}
+        {/* Tags inline + star */}
         <div className="flex items-center gap-1.5 flex-wrap shrink-0">
           {song.languages.map(l => (
             <span key={l} className="text-[10px] font-bold text-violet-400 bg-violet-950/20 border border-violet-900/30 px-2 py-0.5 rounded-full">{l}</span>
@@ -254,6 +254,19 @@ export default function SongDetail() {
           {song.categories?.map(c => (
             <span key={c} className="text-[10px] font-bold text-indigo-400 bg-indigo-950/20 border border-indigo-900/30 px-2 py-0.5 rounded-full">{c}</span>
           ))}
+          {currentUser.email && (
+            <button
+              onClick={() => toggleFavourite(song.id)}
+              title={isFavourite(song.id) ? 'Remove from favourites' : 'Add to favourites'}
+              className={`p-1.5 rounded-xl border transition-all ${
+                isFavourite(song.id)
+                  ? 'text-yellow-400 bg-yellow-950/20 border-yellow-700/30'
+                  : 'text-gray-500 bg-transparent border-[#1f212d] hover:text-yellow-400 hover:border-yellow-700/30'
+              }`}
+            >
+              <Star className={`w-4 h-4 ${isFavourite(song.id) ? 'fill-yellow-400' : ''}`} />
+            </button>
+          )}
         </div>
       </div>
 

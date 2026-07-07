@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Globe, Tag, ChevronRight, X, Volume2, FileDown, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { Search, Globe, Tag, ChevronRight, X, Volume2, FileDown, SlidersHorizontal, ChevronDown, Star } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 import { API_BASE_URL } from '../services/api';
 
@@ -132,7 +132,7 @@ function PdfExportModal({ isOpen, onClose, languages, categories, initialSearch,
 
 // ─── Main SongList Component ─────────────────────────────────────────────────
 export default function SongList() {
-  const { songs, languages, categories, isLoading } = useSongbook();
+  const { songs, languages, categories, isLoading, toggleFavourite, isFavourite, currentUser } = useSongbook();
   const navigate = useNavigate();
   const filterRef = useRef(null);
 
@@ -400,6 +400,15 @@ export default function SongList() {
 
                     <div className="flex items-center gap-2 text-gray-500 group-hover:text-gray-300 transition-colors pl-2 shrink-0">
                       {song.audioUrl && <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
+                      {currentUser.email && (
+                        <button
+                          onClick={e => { e.stopPropagation(); toggleFavourite(song.id); }}
+                          className={`p-1 rounded-lg transition-colors ${isFavourite(song.id) ? 'text-yellow-400' : 'text-gray-600 hover:text-yellow-400'}`}
+                          title={isFavourite(song.id) ? 'Remove from favourites' : 'Add to favourites'}
+                        >
+                          <Star className={`w-3.5 h-3.5 ${isFavourite(song.id) ? 'fill-yellow-400' : ''}`} />
+                        </button>
+                      )}
                       <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                     </div>
                   </div>
