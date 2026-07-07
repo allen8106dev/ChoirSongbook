@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useMemo, useEffect } from 'react';
+import { createContext, useContext, useState, useMemo } from 'react';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService, API_BASE_URL } from '../services/api';
@@ -20,27 +20,42 @@ export const SongbookProvider = ({ children }) => {
   // Restore JWT session token from storage on load (if exists)
   // No auto-simulation — only real Google sign-in sets a token
 
-  // Favourites — stored per email in localStorage
-  const [favourites, setFavourites] = useState([]);
+  // Favourites — fetched from DB (syncs across devices), requires auth token
+  const { data: favourites = [] } = useQuery({
+    queryKey: ['favourites', currentUser.email],
+    queryFn: apiService.favourites.getAll,
+    enabled: !!currentUser.email, // only fetch when signed in
+    staleTime: 30_000,
+  });
 
-  useEffect(() => {
-    if (currentUser.email) {
-      const stored = localStorage.getItem(`cs_favs_${currentUser.email}`);
-      setFavourites(stored ? JSON.parse(stored) : []);
-    } else {
-      setFavourites([]);
-    }
-  }, [currentUser.email]);
+  const toggleFavouriteMutation = useMutation({
+    mutationFn: async (songId) => {
+      if (favourites.includes(songId)) {
+        await apiService.favourites.remove(songId);
+      } else {
+        await apiService.favourites.add(songId);
+      }
+    },
+    // Optimistic update — instant UI feedback
+    onMutate: async (songId) => {
+      await queryClient.cancelQueries({ queryKey: ['favourites', currentUser.email] });
+      const previous = queryClient.getQueryData(['favourites', currentUser.email]) ?? [];
+      queryClient.setQueryData(['favourites', currentUser.email], (old = []) =>
+        old.includes(songId) ? old.filter(id => id !== songId) : [...old, songId]
+      );
+      return { previous };
+    },
+    onError: (_err, _songId, context) => {
+      queryClient.setQueryData(['favourites', currentUser.email], context.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['favourites', currentUser.email] });
+    },
+  });
 
   const toggleFavourite = (songId) => {
     if (!currentUser.email) return;
-    setFavourites(prev => {
-      const next = prev.includes(songId)
-        ? prev.filter(id => id !== songId)
-        : [...prev, songId];
-      localStorage.setItem(`cs_favs_${currentUser.email}`, JSON.stringify(next));
-      return next;
-    });
+    toggleFavouriteMutation.mutate(songId);
   };
 
   const isFavourite = (songId) => favourites.includes(songId);

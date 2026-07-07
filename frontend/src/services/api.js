@@ -129,6 +129,23 @@ export const apiService = {
       return response.data;
     },
   },
+
+  // --- Favourites ---
+  favourites: {
+    getAll: async () => {
+      const response = await api.get('/favourites');
+      return response.data; // array of song IDs
+    },
+    add: async (songId) => {
+      const response = await api.post(`/favourites/${songId}`);
+      return response.data;
+    },
+    remove: async (songId) => {
+      const response = await api.delete(`/favourites/${songId}`);
+      return response.data;
+    },
+  },
 };
+
 
 export default api;

@@ -5,7 +5,7 @@ import os
 
 from app.config import settings
 from app.database import engine, Base, SessionLocal
-from app.routers import auth, songs, categories, languages, admin
+from app.routers import auth, songs, categories, languages, admin, favourites
 from app import models, crud, schemas
 
 # Initialize database tables on startup (especially for SQLite local)
@@ -59,6 +59,7 @@ app.include_router(songs.router, prefix=settings.API_V1_STR)
 app.include_router(categories.router, prefix=settings.API_V1_STR)
 app.include_router(languages.router, prefix=settings.API_V1_STR)
 app.include_router(admin.router, prefix=settings.API_V1_STR)
+app.include_router(favourites.router, prefix=settings.API_V1_STR)
 
 # Serve local uploads statically
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")

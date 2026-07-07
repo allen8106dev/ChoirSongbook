@@ -63,3 +63,11 @@ class AdminEmail(Base):
     
     email = Column(String(255), primary_key=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class Favourite(Base):
+    __tablename__ = "favourites"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_email = Column(String(255), nullable=False, index=True)
+    song_id = Column(String(36), ForeignKey("songs.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
