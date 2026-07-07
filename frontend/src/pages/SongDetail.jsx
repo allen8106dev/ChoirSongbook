@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Edit3, Play, Pause, Volume2, Type, Globe, Tag, Sparkles, Maximize2, Minimize2, X } from 'lucide-react';
+import { ArrowLeft, Edit3, Play, Pause, Volume2, Type, Globe, Tag, Sparkles, Maximize2, Minimize2 } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 
 // Parse "=== Heading ===\ntext" format into sections array
@@ -46,11 +47,46 @@ export default function SongDetail() {
     }, 180);
   };
 
-  // Escape key closes fullscreen
+  // Enter / exit fullscreen
+  const enterFullscreen = () => {
+    setIsFullscreen(true);
+    // Try native fullscreen API (hides browser chrome on Android)
+    const el = document.documentElement;
+    if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    // Lock body scroll
+    document.body.style.overflow = 'hidden';
+  };
+
+  const exitFullscreen = () => {
+    setIsFullscreen(false);
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    } else if (document.webkitFullscreenElement && document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    }
+    document.body.style.overflow = '';
+  };
+
+  // Escape key + native fullscreen change both exit
   useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') setIsFullscreen(false); };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    const onKey = (e) => { if (e.key === 'Escape') exitFullscreen(); };
+    const onFsChange = () => {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        setIsFullscreen(false);
+        document.body.style.overflow = '';
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    document.addEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.removeEventListener('fullscreenchange', onFsChange);
+      document.removeEventListener('webkitfullscreenchange', onFsChange);
+      document.body.style.overflow = '';
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (isLoading) {
@@ -137,48 +173,50 @@ export default function SongDetail() {
     </div>
   ) : null;
 
-  // ─── Fullscreen overlay ──────────────────────────────────────────────────
-  if (isFullscreen) {
-    return (
-      <div className="fixed inset-0 z-[100] bg-[#080910] flex flex-col">
-        {/* Fullscreen top bar */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 shrink-0">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-black text-violet-400 bg-violet-950/40 border border-violet-900/30 px-2 py-0.5 rounded">
-              No. {song.number}
-            </span>
-            <span className="text-sm font-bold text-white">{song.title}</span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <SectionTabs size="sm" />
-
-            {/* Font controls */}
-            <div className="flex items-center gap-1.5">
-              <button onClick={decreaseFontSize} disabled={fontSize <= 12} className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 font-bold border border-white/10 flex items-center justify-center text-xs text-gray-300">A-</button>
-              <span className="text-[10px] font-bold text-gray-500 w-8 text-center">{fontSize}px</span>
-              <button onClick={increaseFontSize} disabled={fontSize >= 36} className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 font-bold border border-white/10 flex items-center justify-center text-xs text-gray-300">A+</button>
-            </div>
-
-            <button
-              onClick={() => setIsFullscreen(false)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white text-xs font-bold transition-all"
-            >
-              <Minimize2 className="w-3.5 h-3.5" /> Exit
-            </button>
-          </div>
+  // ─── Fullscreen overlay (portaled to document.body) ─────────────────────
+  const fullscreenOverlay = isFullscreen ? createPortal(
+    <div
+      className="flex flex-col bg-[#080910]"
+      style={{ position: 'fixed', inset: 0, zIndex: 9999 }}
+    >
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[10px] font-black text-violet-400 bg-violet-950/40 border border-violet-900/30 px-2 py-0.5 rounded shrink-0">
+            {song.number}
+          </span>
+          <span className="text-sm font-bold text-white truncate">{song.title}</span>
         </div>
 
-        {/* Fullscreen lyrics body */}
-        <div className="flex-1 overflow-y-auto px-10 py-8 md:px-20 md:py-12">
-          <LyricBody fullscreen />
+        <div className="flex items-center gap-2 shrink-0 ml-3">
+          <SectionTabs size="sm" />
+          {/* Font controls */}
+          <div className="flex items-center gap-1">
+            <button onClick={decreaseFontSize} disabled={fontSize <= 12} className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 font-bold border border-white/10 flex items-center justify-center text-[10px] text-gray-300">A-</button>
+            <button onClick={increaseFontSize} disabled={fontSize >= 36} className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 font-bold border border-white/10 flex items-center justify-center text-[10px] text-gray-300">A+</button>
+          </div>
+          <button
+            onClick={exitFullscreen}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-red-950/30 border border-white/10 hover:border-red-900/40 text-gray-300 hover:text-red-400 text-xs font-bold transition-all"
+          >
+            <Minimize2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Exit</span>
+          </button>
         </div>
       </div>
-    );
-  }
+
+      {/* Lyrics body — full remaining height, scrollable */}
+      <div className="flex-1 overflow-y-auto px-6 py-6 md:px-16 md:py-10">
+        <LyricBody fullscreen />
+      </div>
+    </div>,
+    document.body
+  ) : null;
 
   // ─── Normal view ─────────────────────────────────────────────────────────
   return (
+    <>
+    {fullscreenOverlay}
     <div className="space-y-4 pb-12">
       {/* Top Navbar */}
       <div className="flex items-center justify-between border-b border-[#1f212d] pb-3 sticky top-[73px] md:top-0 bg-[#0b0c10] z-20">
@@ -242,7 +280,7 @@ export default function SongDetail() {
 
             {/* Fullscreen button */}
             <button
-              onClick={() => setIsFullscreen(true)}
+              onClick={enterFullscreen}
               title="Fullscreen lyrics"
               className="w-7 h-7 rounded-lg bg-[#111219] hover:bg-violet-950/30 hover:border-violet-500/40 border border-[#1f212d] flex items-center justify-center text-gray-400 hover:text-violet-400 transition-all"
             >
@@ -320,5 +358,6 @@ export default function SongDetail() {
         </div>
       )}
     </div>
+    </>
   );
 }
