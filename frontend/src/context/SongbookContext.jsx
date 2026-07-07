@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useMemo } from 'react';
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService, API_BASE_URL } from '../services/api';
 
@@ -10,24 +11,14 @@ const SongbookContext = createContext(null);
 export const SongbookProvider = ({ children }) => {
   const queryClient = useQueryClient();
 
-  // Simulated local user state (initialized from localStorage fallback)
+  // User state - initialized from localStorage if a real Google session exists
   const [currentUser, setCurrentUser] = useState(() => {
-    const saved = localStorage.getItem('cs_sim_user');
-    return saved ? JSON.parse(saved) : { email: 'allen@example.com', role: 'developer', name: 'Allen' };
+    const saved = localStorage.getItem('cs_user');
+    return saved ? JSON.parse(saved) : { email: '', role: 'viewer', name: 'Guest' };
   });
 
-  // Check if token already exists. If not, seed a mock token on startup to match the default simulated user
-  useMemo(() => {
-    const token = localStorage.getItem('cs_auth_token');
-    if (!token && currentUser.email) {
-      // Fetch token in background or seed it locally
-      apiService.auth.loginSimulate(currentUser.email)
-        .then(data => {
-          localStorage.setItem('cs_auth_token', data.access_token);
-        })
-        .catch(err => console.error("Auto-seeding simulation token failed:", err));
-    }
-  }, [currentUser]);
+  // Restore JWT session token from storage on load (if exists)
+  // No auto-simulation — only real Google sign-in sets a token
 
   // --- React Query Data Fetching Queries ---
   
@@ -87,43 +78,25 @@ export const SongbookProvider = ({ children }) => {
 
   // --- Mutations for Operations ---
 
-  // Auth Mutation
-  const changeSimulatedUser = async (email) => {
-    try {
-      const data = await apiService.auth.loginSimulate(email);
-      localStorage.setItem('cs_auth_token', data.access_token);
-      localStorage.setItem('cs_sim_user', JSON.stringify(data.user));
-      setCurrentUser(data.user);
-      
-      // Invalidate everything to trigger correct queries for the new user profile
-      queryClient.invalidateQueries();
-    } catch (e) {
-      console.error("Simulation login toggle failed", e);
-    }
-  };
-
   const handleGoogleLogin = async (idToken) => {
     try {
       const data = await apiService.auth.loginGoogle(idToken);
       localStorage.setItem('cs_auth_token', data.access_token);
-      localStorage.setItem('cs_sim_user', JSON.stringify(data.user));
+      localStorage.setItem('cs_user', JSON.stringify(data.user));
       setCurrentUser(data.user);
       queryClient.invalidateQueries();
       return data.user;
     } catch (e) {
-      console.error("Google authentication failed", e);
+      console.error('Google authentication failed', e);
       throw e;
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem('cs_auth_token');
-    localStorage.removeItem('cs_sim_user');
-    // Revert to default guest viewer
-    const guestUser = { email: 'guest@choir.org', role: 'viewer', name: 'Guest' };
+    localStorage.removeItem('cs_user');
+    const guestUser = { email: '', role: 'viewer', name: 'Guest' };
     setCurrentUser(guestUser);
-    localStorage.setItem('cs_sim_user', JSON.stringify(guestUser));
-    // Reset query cache
     queryClient.clear();
     queryClient.invalidateQueries();
   };
@@ -249,7 +222,6 @@ export const SongbookProvider = ({ children }) => {
         currentUser,
         adminEmails,
         isLoading,
-        changeSimulatedUser,
         handleGoogleLogin,
         handleLogout,
         addSong,

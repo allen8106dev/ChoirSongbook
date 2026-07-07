@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     SUPABASE_BUCKET: Optional[str] = "song-audio"
     
     # Primary developer email (always has developer access)
-    DEVELOPER_EMAIL: str = "allen@example.com"
+    DEVELOPER_EMAIL: str = "allen8106.dev@gmail.com"
     
     # Allowed CORS Origins (comma-separated list, e.g. "https://domain1.com,https://domain2.com")
     ALLOWED_ORIGINS: str = "*"

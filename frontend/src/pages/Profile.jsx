@@ -1,129 +1,82 @@
 import { useState } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
-import { User, Shield, ShieldCheck, Terminal, ArrowRight, Lock, Unlock, LogIn } from 'lucide-react';
+import { LogIn, LogOut, Lock, Unlock, ShieldCheck, Terminal, User } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 
 export default function Profile() {
-  const { currentUser, changeSimulatedUser, adminEmails, handleGoogleLogin } = useSongbook();
-  const [customEmail, setCustomEmail] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
+  const { currentUser, handleGoogleLogin, handleLogout } = useSongbook();
   const [googleError, setGoogleError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
-  // Handle custom login simulation
-  const handleSimulate = (e) => {
-    e.preventDefault();
-    const email = customEmail.trim().toLowerCase();
-    if (!email) return;
+  const isSignedIn = !!currentUser.email;
 
-    changeSimulatedUser(email);
-    setCustomEmail('');
-    
-    // Determine target role for notice
-    let role = 'Viewer';
-    if (email === 'allen@example.com') role = 'Developer';
-    else if (adminEmails.includes(email)) role = 'Admin';
-    
-    setSuccessMsg(`Simulated sign-in as ${email} (${role})`);
-    setTimeout(() => setSuccessMsg(''), 3000);
-  };
+  const roleColor = currentUser.role === 'developer'
+    ? { bg: 'bg-violet-950/30', text: 'text-violet-400', border: 'border-violet-500/40', shadow: 'shadow-violet-600/10', badge: 'bg-violet-950/40 text-violet-400 border-violet-500/30' }
+    : currentUser.role === 'admin'
+    ? { bg: 'bg-indigo-950/30', text: 'text-indigo-400', border: 'border-indigo-500/40', shadow: 'shadow-indigo-600/10', badge: 'bg-indigo-950/40 text-indigo-400 border-indigo-500/30' }
+    : { bg: 'bg-gray-950', text: 'text-gray-400', border: 'border-gray-800', shadow: '', badge: 'bg-gray-900/60 text-gray-400 border-gray-800' };
 
-  // Pre-configured simulation profiles
-  const quickProfiles = [
-    {
-      email: 'allen@example.com',
-      role: 'developer',
-      label: 'Developer Account',
-      desc: 'Full console settings, tag deletions, and admin emails editor.',
-      icon: Terminal,
-      color: 'border-violet-500/50 hover:bg-violet-950/20 text-violet-400'
-    },
-    {
-      email: 'admin@choir.org',
-      role: 'admin',
-      label: 'Choir Admin Account',
-      desc: 'Can edit songs, add new titles, upload tracks. Restricted settings.',
-      icon: ShieldCheck,
-      color: 'border-indigo-500/50 hover:bg-indigo-950/20 text-indigo-400'
-    },
-    {
-      email: 'singer@church.org',
-      role: 'viewer',
-      label: 'General Choir Member',
-      desc: 'Can search/view lyrics, size font, play audio tracks. Read only.',
-      icon: User,
-      color: 'border-gray-700 hover:bg-gray-800/40 text-gray-400'
-    }
-  ];
+  const RoleIcon = currentUser.role === 'developer' ? Terminal : currentUser.role === 'admin' ? ShieldCheck : User;
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-1">
-        <h2 className="text-2xl font-bold text-white">Identity & Roles</h2>
-        <p className="text-xs text-gray-500">Switch user accounts to preview different access rules and view scopes</p>
+        <h2 className="text-2xl font-bold text-white">Account & Role</h2>
+        <p className="text-xs text-gray-500">Sign in with your Google account to access your role and permissions</p>
       </div>
 
-      {/* Current Active Account Status */}
+      {/* Current Account Status */}
       <div className="p-6 bg-gradient-to-br from-[#12131b] to-[#181923] border border-[#1f212d] rounded-3xl space-y-4">
         <div className="flex items-center gap-4">
-          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border font-bold text-lg uppercase ${
-            currentUser.role === 'developer'
-              ? 'bg-violet-950/30 text-violet-400 border-violet-500/40 shadow-lg shadow-violet-600/10'
-              : currentUser.role === 'admin'
-              ? 'bg-indigo-950/30 text-indigo-400 border-indigo-500/40 shadow-lg shadow-indigo-600/10'
-              : 'bg-gray-950 text-gray-400 border-gray-800'
-          }`}>
-            {currentUser.email ? currentUser.email.charAt(0) : 'G'}
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border font-bold text-lg uppercase ${roleColor.bg} ${roleColor.text} ${roleColor.border} shadow-lg ${roleColor.shadow}`}>
+            {isSignedIn ? currentUser.email.charAt(0).toUpperCase() : <User className="w-6 h-6" />}
           </div>
           <div className="min-w-0 flex-1">
-            <span className="text-[10px] font-black uppercase text-gray-500 tracking-wider">Active Credentials</span>
-            <h3 className="font-extrabold text-white text-base truncate">{currentUser.email || 'Guest Member'}</h3>
-            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase mt-1 border ${
-              currentUser.role === 'developer'
-                ? 'bg-violet-950/40 text-violet-400 border-violet-500/30'
-                : currentUser.role === 'admin'
-                ? 'bg-indigo-950/40 text-indigo-400 border-indigo-500/30'
-                : 'bg-gray-900/60 text-gray-400 border-gray-800'
-            }`}>
+            <span className="text-[10px] font-black uppercase text-gray-500 tracking-wider">
+              {isSignedIn ? 'Signed In' : 'Not Signed In'}
+            </span>
+            <h3 className="font-extrabold text-white text-base truncate">
+              {isSignedIn ? (currentUser.name || currentUser.email) : 'Guest Viewer'}
+            </h3>
+            {isSignedIn && (
+              <p className="text-xs text-gray-500 truncate">{currentUser.email}</p>
+            )}
+            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase mt-1.5 border ${roleColor.badge}`}>
+              <RoleIcon className="w-2.5 h-2.5" />
               {currentUser.role} Role
             </span>
           </div>
+
+          {/* Sign Out button (only when signed in) */}
+          {isSignedIn && (
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-red-400 hover:bg-red-950/20 border border-[#1f212d] hover:border-red-900/40 transition-all"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Sign Out
+            </button>
+          )}
         </div>
 
-        {/* Feature Access Matrix */}
+        {/* Privileges Matrix */}
         <div className="pt-4 border-t border-[#1f212d]/60 space-y-2.5">
-          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Your Privileges Matrix</p>
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Access Privileges</p>
           <div className="grid grid-cols-3 gap-2">
-            <div className="p-3 bg-gray-950 rounded-xl flex flex-col gap-1 border border-[#1f212d]/50">
-              <span className="text-[10px] text-gray-400 font-semibold">Search & View</span>
-              <div className="flex items-center gap-1 text-emerald-400 font-bold text-[10px] uppercase">
-                <Unlock className="w-3 h-3" /> Allowed
+            {[
+              { label: 'Search & View', allowed: true },
+              { label: 'Song CRUD', allowed: currentUser.role !== 'viewer' },
+              { label: 'Admin Console', allowed: currentUser.role === 'developer' },
+            ].map(({ label, allowed }) => (
+              <div key={label} className="p-3 bg-gray-950 rounded-xl flex flex-col gap-1 border border-[#1f212d]/50">
+                <span className="text-[10px] text-gray-400 font-semibold">{label}</span>
+                <div className={`flex items-center gap-1 font-bold text-[10px] uppercase ${allowed ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {allowed ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                  {allowed ? 'Allowed' : 'Blocked'}
+                </div>
               </div>
-            </div>
-            <div className="p-3 bg-gray-950 rounded-xl flex flex-col gap-1 border border-[#1f212d]/50">
-              <span className="text-[10px] text-gray-400 font-semibold">Song CRUD</span>
-              {currentUser.role !== 'viewer' ? (
-                <div className="flex items-center gap-1 text-emerald-400 font-bold text-[10px] uppercase">
-                  <Unlock className="w-3 h-3" /> Allowed
-                </div>
-              ) : (
-                <div className="flex items-center gap-1 text-red-400 font-bold text-[10px] uppercase">
-                  <Lock className="w-3 h-3" /> Blocked
-                </div>
-              )}
-            </div>
-            <div className="p-3 bg-gray-950 rounded-xl flex flex-col gap-1 border border-[#1f212d]/50">
-              <span className="text-[10px] text-gray-400 font-semibold">Admin Panel</span>
-              {currentUser.role === 'developer' ? (
-                <div className="flex items-center gap-1 text-emerald-400 font-bold text-[10px] uppercase">
-                  <Unlock className="w-3 h-3" /> Allowed
-                </div>
-              ) : (
-                <div className="flex items-center gap-1 text-red-400 font-bold text-[10px] uppercase">
-                  <Lock className="w-3 h-3" /> Blocked
-                </div>
-              )}
-            </div>
+            ))}
           </div>
         </div>
       </div>
@@ -131,92 +84,58 @@ export default function Profile() {
       {/* Google Sign-In Card */}
       <div className="p-6 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4">
         <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-          <LogIn className="w-4 h-4 text-emerald-400" /> Sign In with Google
+          <LogIn className="w-4 h-4 text-emerald-400" />
+          {isSignedIn ? 'Switch Account' : 'Sign In with Google'}
         </h3>
         <p className="text-xs text-gray-400">
-          Sign in with your real Google account. Your role is determined by whether your email is in the Admin list.
+          {isSignedIn
+            ? 'Sign in with a different Google account to switch roles.'
+            : 'Sign in with your Google account. Your role (Viewer / Admin / Developer) is assigned automatically based on your email.'}
         </p>
+
         <div className="flex justify-center pt-1">
           <GoogleLogin
             onSuccess={(credentialResponse) => {
               setGoogleError('');
               handleGoogleLogin(credentialResponse.credential)
-                .then(() => setSuccessMsg('Signed in with Google successfully!'))
-                .catch(() => setGoogleError('Sign-in failed. Your email may not be authorised or Google Client ID is not configured yet.'));
-              setTimeout(() => setSuccessMsg(''), 3000);
+                .then((user) => {
+                  setSuccessMsg(`Signed in as ${user.email} · ${user.role} role`);
+                  setTimeout(() => setSuccessMsg(''), 4000);
+                })
+                .catch(() => setGoogleError('Sign-in failed. Check that VITE_GOOGLE_CLIENT_ID is configured correctly.'));
             }}
-            onError={() => setGoogleError('Google Sign-In failed. Make sure VITE_GOOGLE_CLIENT_ID is configured.')}
-            useOneTap
+            onError={() => setGoogleError('Google Sign-In failed. Check your Google Client ID configuration.')}
+            useOneTap={!isSignedIn}
             theme="filled_black"
             shape="rectangular"
             size="large"
-            text="signin_with"
+            text={isSignedIn ? 'continue_with' : 'signin_with'}
           />
         </div>
+
+        {successMsg && (
+          <p className="text-xs font-bold text-emerald-400 text-center animate-pulse">{successMsg}</p>
+        )}
         {googleError && (
           <p className="text-xs font-bold text-red-400 text-center">{googleError}</p>
         )}
-        {successMsg && (
-          <p className="text-xs font-bold text-emerald-400 text-center animate-pulse">{successMsg}</p>
-        )}
-      </div>
 
-      {/* Simulation Trigger Form */}
-      <div className="p-6 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4">
-        <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-          <Shield className="w-4 h-4 text-violet-400" /> Switch Accounts
-        </h3>
-        <p className="text-xs text-gray-400">
-          Enter any email below. The system checks if it is in the Admin list or matches the Developer email.
-        </p>
-
-        {/* Custom Input */}
-        <form onSubmit={handleSimulate} className="flex gap-2">
-          <input
-            type="text"
-            placeholder="e.g. director@choir.org"
-            value={customEmail}
-            onChange={(e) => setCustomEmail(e.target.value)}
-            className="flex-1 px-4 py-3.5 bg-gray-950 border border-[#1f212d] focus:border-violet-500 rounded-2xl text-xs placeholder-gray-600 focus:outline-none transition-all shadow-inner"
-          />
-          <button
-            type="submit"
-            className="px-4 bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs rounded-2xl transition-colors shrink-0"
-          >
-            Sign-in
-          </button>
-        </form>
-
-        {successMsg && (
-          <p className="text-xs font-bold text-emerald-400 text-center animate-pulse">{successMsg}</p>
-        )}
-
-        {/* Preset profiles lists */}
-        <div className="pt-2.5 border-t border-[#1f212d]/60 space-y-2">
-          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Simulation Profiles Preset</p>
-          <div className="grid gap-2">
-            {quickProfiles.map((prof) => (
-              <button
-                key={prof.email}
-                onClick={() => {
-                  changeSimulatedUser(prof.email);
-                  setSuccessMsg(`Simulated sign-in as ${prof.email} (${prof.role})`);
-                  setTimeout(() => setSuccessMsg(''), 2500);
-                }}
-                className={`w-full text-left p-3.5 bg-gray-950/40 hover:bg-gray-900 border rounded-2xl flex items-start gap-3.5 transition-all group ${prof.color}`}
-              >
-                <div className="p-2 rounded-xl bg-gray-900 border border-white/5 group-hover:scale-105 transition-transform">
-                  <prof.icon className="w-4 h-4" />
+        {/* Role explanation */}
+        <div className="pt-3 border-t border-[#1f212d]/60 space-y-2">
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">How Roles Work</p>
+          <div className="space-y-2">
+            {[
+              { icon: Terminal, color: 'text-violet-400', label: 'Developer', desc: 'Full access: song management, admin console, tag editor, admin email list.' },
+              { icon: ShieldCheck, color: 'text-indigo-400', label: 'Admin', desc: 'Can add/edit/delete songs and upload reference audio tracks.' },
+              { icon: User, color: 'text-gray-400', label: 'Viewer', desc: 'Read-only: browse lyrics, search songs, play audio. Default for all others.' },
+            ].map(({ icon: Icon, color, label, desc }) => (
+              <div key={label} className="flex items-start gap-3 p-3 bg-gray-950/40 rounded-xl border border-[#1f212d]/50">
+                <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${color}`} />
+                <div>
+                  <span className={`text-xs font-bold ${color}`}>{label}</span>
+                  <p className="text-[10px] text-gray-500 mt-0.5">{desc}</p>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-white leading-tight">{prof.label}</span>
-                    <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-gray-400" />
-                  </div>
-                  <p className="text-[10px] text-gray-500 mt-0.5 truncate">{prof.email}</p>
-                  <p className="text-[10px] text-gray-400 mt-1 leading-normal font-medium">{prof.desc}</p>
-                </div>
-              </button>
+              </div>
             ))}
           </div>
         </div>
