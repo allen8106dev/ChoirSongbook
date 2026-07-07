@@ -47,32 +47,36 @@ export default function AdminSettings() {
 
   // Reusable list row — handles both view and edit mode
   const TagRow = ({ name, isEditing, editValue, onEdit, onEditChange, onEditSubmit, onEditCancel, onDelete, accentClass }) => (
-    <div className="w-full p-3 bg-gray-900/30 border border-[#1f212d]/60 rounded-xl">
+    <div className="w-full rounded-2xl border border-[#1f212d]/60 bg-gray-900/30 p-4 sm:p-3">
       {isEditing ? (
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        <div className="grid gap-3">
           <input
             type="text"
             value={editValue}
             onChange={onEditChange}
-            className="w-full flex-1 min-w-0 px-3 py-1.5 bg-gray-950 border border-violet-500/60 rounded-xl text-xs text-white focus:outline-none"
+            className="w-full min-w-0 px-4 py-3 bg-gray-950 border border-violet-500/60 rounded-2xl text-sm text-white focus:outline-none"
             autoFocus
           />
-          <button onClick={onEditSubmit} className="w-full sm:w-auto p-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 shrink-0">
-            <Check className="w-3.5 h-3.5" />
-          </button>
-          <button onClick={onEditCancel} className="w-full sm:w-auto p-1.5 bg-gray-800 text-gray-400 rounded-lg hover:text-white shrink-0">
-            <X className="w-3.5 h-3.5" />
-          </button>
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+            <button onClick={onEditSubmit} className="inline-flex items-center justify-center gap-1.5 min-h-11 px-4 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-500 shrink-0 text-sm font-semibold">
+              <Check className="w-4 h-4" /> Save
+            </button>
+            <button onClick={onEditCancel} className="inline-flex items-center justify-center gap-1.5 min-h-11 px-4 bg-gray-800 text-gray-300 rounded-2xl hover:text-white shrink-0 text-sm font-semibold">
+              <X className="w-4 h-4" /> Cancel
+            </button>
+          </div>
         </div>
       ) : (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <span className={`text-xs font-semibold break-words min-w-0 ${accentClass || 'text-gray-300'}`}>{name}</span>
-          <div className="flex gap-1.5 shrink-0 self-start sm:self-auto">
-            <button onClick={onEdit} className="p-1.5 rounded-lg text-gray-500 hover:text-violet-400 hover:bg-violet-950/20 transition-colors" title="Rename">
-              <Edit2 className="w-3.5 h-3.5" />
+        <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
+          <span className={`min-w-0 text-sm font-semibold leading-snug break-words ${accentClass || 'text-gray-300'}`}>{name}</span>
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-1.5 sm:shrink-0">
+            <button onClick={onEdit} className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl bg-gray-800/60 px-3 text-gray-200 transition-colors hover:bg-violet-950/20 hover:text-violet-300 sm:min-h-0 sm:p-1.5 sm:text-gray-500 sm:hover:bg-violet-950/20" title="Rename">
+              <Edit2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+              <span className="sm:hidden text-sm font-semibold">Rename</span>
             </button>
-            <button onClick={onDelete} className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-950/20 transition-colors" title="Delete">
-              <Trash2 className="w-3.5 h-3.5" />
+            <button onClick={onDelete} className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl bg-gray-800/60 px-3 text-gray-200 transition-colors hover:bg-red-950/20 hover:text-red-300 sm:min-h-0 sm:p-1.5 sm:text-gray-500 sm:hover:bg-red-950/20" title="Delete">
+              <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+              <span className="sm:hidden text-sm font-semibold">Delete</span>
             </button>
           </div>
         </div>
@@ -81,14 +85,14 @@ export default function AdminSettings() {
   );
 
   return (
-    <div className="space-y-5 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-violet-950/40 border border-violet-900/30 flex items-center justify-center shrink-0">
+        <div className="w-11 h-11 rounded-2xl bg-violet-950/40 border border-violet-900/30 flex items-center justify-center shrink-0">
           <ShieldAlert className="w-5 h-5 text-violet-400" />
         </div>
         <div className="min-w-0">
-          <h2 className="text-2xl sm:text-xl font-bold text-white leading-tight">Developer Console</h2>
+          <h2 className="text-[1.55rem] sm:text-xl font-bold text-white leading-tight">Developer Console</h2>
           <p className="text-sm sm:text-xs text-gray-500">Manage admin privileges, language tags, and global categories</p>
         </div>
       </div>
@@ -96,7 +100,7 @@ export default function AdminSettings() {
       {/* Admin Email Management */}
       <div className="w-full p-4 sm:p-5 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4 overflow-hidden">
         <div>
-          <h3 className="text-base sm:text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+          <h3 className="flex items-center gap-2 text-[15px] sm:text-sm font-semibold text-white sm:uppercase sm:tracking-wider">
             <Mail className="w-4 h-4 text-violet-400" /> Admin Access Controls
           </h3>
           <p className="text-sm sm:text-xs text-gray-400 mt-1">
@@ -105,20 +109,21 @@ export default function AdminSettings() {
         </div>
 
         {/* Admin list */}
-        <div className="grid gap-2">
+        <div className="grid gap-3">
           {adminEmails.map((email) => (
-            <div key={email} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-gray-900/30 border border-[#1f212d]/60 rounded-xl">
-              <span className="text-sm sm:text-xs font-semibold text-gray-300 break-words min-w-0">{email}</span>
+            <div key={email} className="grid gap-3 rounded-2xl border border-[#1f212d]/60 bg-gray-900/30 p-4">
+              <span className="min-w-0 break-words text-sm font-semibold text-gray-200 leading-snug">{email}</span>
               {email !== 'allen@example.com' ? (
                 <button
                   onClick={() => removeAdminEmail(email)}
-                  className="self-start sm:self-auto p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-950/20 transition-colors shrink-0"
+                  className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl bg-gray-800/60 px-4 text-sm font-semibold text-gray-200 transition-colors hover:bg-red-950/20 hover:text-red-300 sm:min-h-0 sm:w-fit sm:px-3 sm:py-1.5 sm:text-gray-500 sm:hover:bg-red-950/20 sm:justify-self-end"
                   title="Remove Admin Role"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                  <span>Remove</span>
                 </button>
               ) : (
-                <span className="self-start sm:self-auto text-[10px] sm:text-[9px] font-black uppercase text-violet-400 bg-violet-950/20 border border-violet-900/30 px-2 py-0.5 rounded shrink-0">
+                <span className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-violet-900/30 bg-violet-950/20 px-4 text-sm font-semibold text-violet-300 sm:min-h-0 sm:w-fit sm:px-3 sm:py-1.5 sm:text-[9px] sm:font-black sm:uppercase sm:justify-self-end">
                   Primary Dev
                 </span>
               )}
@@ -126,31 +131,31 @@ export default function AdminSettings() {
           ))}
         </div>
 
-        {/* Add email form — stacked on mobile, row on larger */}
+        {/* Add email form */}
         <form onSubmit={handleAddEmail} className="space-y-2">
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="grid gap-2 sm:flex sm:flex-row">
             <input
               type="text"
               placeholder="choir.member@gmail.com"
               value={newAdminEmail}
               onChange={(e) => { setNewAdminEmail(e.target.value); setEmailError(''); }}
-              className="flex-1 px-4 py-3 bg-gray-950 border border-[#1f212d] focus:border-violet-500 rounded-2xl text-sm sm:text-xs placeholder-gray-600 focus:outline-none transition-colors"
+              className="flex-1 px-4 py-3 bg-gray-950 border border-[#1f212d] focus:border-violet-500 rounded-2xl text-sm placeholder-gray-600 focus:outline-none transition-colors"
             />
             <button
               type="submit"
-              className="flex items-center justify-center gap-1.5 px-4 py-3 bg-violet-600 hover:bg-violet-500 text-white rounded-2xl font-bold text-sm sm:text-xs transition-colors shrink-0"
+              className="flex min-h-11 items-center justify-center gap-1.5 rounded-2xl bg-violet-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-violet-500 sm:shrink-0 sm:text-xs"
             >
               <Plus className="w-3.5 h-3.5" /> Add Admin
             </button>
           </div>
-          {emailError && <p className="text-sm sm:text-xs font-semibold text-red-400">{emailError}</p>}
+          {emailError && <p className="text-sm font-semibold text-red-400">{emailError}</p>}
         </form>
       </div>
 
       {/* Global Languages Editor */}
       <div className="w-full p-4 sm:p-5 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4 overflow-hidden">
         <div>
-          <h3 className="text-base sm:text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+          <h3 className="flex items-center gap-2 text-[15px] sm:text-sm font-semibold text-white sm:uppercase sm:tracking-wider">
             <Globe className="w-4 h-4 text-violet-400" /> Manage Language Tags
           </h3>
           <p className="text-sm sm:text-xs text-gray-400 mt-1">
@@ -158,7 +163,7 @@ export default function AdminSettings() {
           </p>
         </div>
 
-        <div className="grid gap-2">
+        <div className="grid gap-3">
           {languages.map((lang) => (
             <TagRow
               key={lang}
@@ -174,7 +179,7 @@ export default function AdminSettings() {
             />
           ))}
           {languages.length === 0 && (
-            <p className="text-sm sm:text-xs text-gray-600 text-center py-4">No language tags yet</p>
+            <p className="text-sm text-gray-600 text-center py-4">No language tags yet</p>
           )}
         </div>
       </div>
@@ -182,7 +187,7 @@ export default function AdminSettings() {
       {/* Global Categories Editor */}
       <div className="w-full p-4 sm:p-5 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4 overflow-hidden">
         <div>
-          <h3 className="text-base sm:text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+          <h3 className="flex items-center gap-2 text-[15px] sm:text-sm font-semibold text-white sm:uppercase sm:tracking-wider">
             <Tag className="w-4 h-4 text-indigo-400" /> Manage Categories
           </h3>
           <p className="text-sm sm:text-xs text-gray-400 mt-1">
@@ -190,7 +195,7 @@ export default function AdminSettings() {
           </p>
         </div>
 
-        <div className="grid gap-2">
+        <div className="grid gap-3">
           {categories.map((cat) => (
             <TagRow
               key={cat}
@@ -206,7 +211,7 @@ export default function AdminSettings() {
             />
           ))}
           {categories.length === 0 && (
-            <p className="text-sm sm:text-xs text-gray-600 text-center py-4">No categories yet</p>
+            <p className="text-sm text-gray-600 text-center py-4">No categories yet</p>
           )}
         </div>
       </div>
