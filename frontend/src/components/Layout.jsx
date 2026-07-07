@@ -73,7 +73,7 @@ export default function Layout({ children }) {
         </header>
 
         {/* Dynamic Route Container */}
-        <main className="flex-1 p-5 md:p-10 max-w-4xl mx-auto w-full animate-fade-in overflow-x-hidden">
+        <main className="flex-1 p-3 sm:p-5 md:p-10 max-w-4xl mx-auto w-full animate-fade-in overflow-x-hidden">
           {children}
         </main>
       </div>

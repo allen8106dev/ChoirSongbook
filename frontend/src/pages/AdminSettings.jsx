@@ -81,25 +81,25 @@ export default function AdminSettings() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-violet-950/40 border border-violet-900/30 flex items-center justify-center shrink-0">
           <ShieldAlert className="w-5 h-5 text-violet-400" />
         </div>
         <div className="min-w-0">
-          <h2 className="text-xl font-bold text-white leading-tight">Developer Console</h2>
-          <p className="text-xs text-gray-500">Manage admin privileges, language tags, and global categories</p>
+          <h2 className="text-2xl sm:text-xl font-bold text-white leading-tight">Developer Console</h2>
+          <p className="text-sm sm:text-xs text-gray-500">Manage admin privileges, language tags, and global categories</p>
         </div>
       </div>
 
       {/* Admin Email Management */}
       <div className="w-full p-4 sm:p-5 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4 overflow-hidden">
         <div>
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+          <h3 className="text-base sm:text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
             <Mail className="w-4 h-4 text-violet-400" /> Admin Access Controls
           </h3>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-sm sm:text-xs text-gray-400 mt-1">
             Admins can add/edit songs and upload audio. Add approved Google emails below.
           </p>
         </div>
@@ -108,17 +108,17 @@ export default function AdminSettings() {
         <div className="grid gap-2">
           {adminEmails.map((email) => (
             <div key={email} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-gray-900/30 border border-[#1f212d]/60 rounded-xl">
-              <span className="text-xs font-semibold text-gray-300 break-words min-w-0">{email}</span>
+              <span className="text-sm sm:text-xs font-semibold text-gray-300 break-words min-w-0">{email}</span>
               {email !== 'allen@example.com' ? (
                 <button
                   onClick={() => removeAdminEmail(email)}
-                  className="self-start sm:self-auto p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-950/20 transition-colors shrink-0"
+                  className="self-start sm:self-auto p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-950/20 transition-colors shrink-0"
                   title="Remove Admin Role"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               ) : (
-                <span className="self-start sm:self-auto text-[9px] font-black uppercase text-violet-400 bg-violet-950/20 border border-violet-900/30 px-2 py-0.5 rounded shrink-0">
+                <span className="self-start sm:self-auto text-[10px] sm:text-[9px] font-black uppercase text-violet-400 bg-violet-950/20 border border-violet-900/30 px-2 py-0.5 rounded shrink-0">
                   Primary Dev
                 </span>
               )}
@@ -134,26 +134,26 @@ export default function AdminSettings() {
               placeholder="choir.member@gmail.com"
               value={newAdminEmail}
               onChange={(e) => { setNewAdminEmail(e.target.value); setEmailError(''); }}
-              className="flex-1 px-4 py-2.5 bg-gray-950 border border-[#1f212d] focus:border-violet-500 rounded-2xl text-xs placeholder-gray-600 focus:outline-none transition-colors"
+              className="flex-1 px-4 py-3 bg-gray-950 border border-[#1f212d] focus:border-violet-500 rounded-2xl text-sm sm:text-xs placeholder-gray-600 focus:outline-none transition-colors"
             />
             <button
               type="submit"
-              className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white rounded-2xl font-bold text-xs transition-colors shrink-0"
+              className="flex items-center justify-center gap-1.5 px-4 py-3 bg-violet-600 hover:bg-violet-500 text-white rounded-2xl font-bold text-sm sm:text-xs transition-colors shrink-0"
             >
               <Plus className="w-3.5 h-3.5" /> Add Admin
             </button>
           </div>
-          {emailError && <p className="text-xs font-semibold text-red-400">{emailError}</p>}
+          {emailError && <p className="text-sm sm:text-xs font-semibold text-red-400">{emailError}</p>}
         </form>
       </div>
 
       {/* Global Languages Editor */}
       <div className="w-full p-4 sm:p-5 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4 overflow-hidden">
         <div>
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+          <h3 className="text-base sm:text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
             <Globe className="w-4 h-4 text-violet-400" /> Manage Language Tags
           </h3>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-sm sm:text-xs text-gray-400 mt-1">
             Renaming updates all songs. Deleting removes the tag globally.
           </p>
         </div>
@@ -174,7 +174,7 @@ export default function AdminSettings() {
             />
           ))}
           {languages.length === 0 && (
-            <p className="text-xs text-gray-600 text-center py-4">No language tags yet</p>
+            <p className="text-sm sm:text-xs text-gray-600 text-center py-4">No language tags yet</p>
           )}
         </div>
       </div>
@@ -182,10 +182,10 @@ export default function AdminSettings() {
       {/* Global Categories Editor */}
       <div className="w-full p-4 sm:p-5 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4 overflow-hidden">
         <div>
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+          <h3 className="text-base sm:text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
             <Tag className="w-4 h-4 text-indigo-400" /> Manage Categories
           </h3>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-sm sm:text-xs text-gray-400 mt-1">
             Renaming updates all songs. Deleting removes it from all songs.
           </p>
         </div>
@@ -206,7 +206,7 @@ export default function AdminSettings() {
             />
           ))}
           {categories.length === 0 && (
-            <p className="text-xs text-gray-600 text-center py-4">No categories yet</p>
+            <p className="text-sm sm:text-xs text-gray-600 text-center py-4">No categories yet</p>
           )}
         </div>
       </div>
