@@ -71,6 +71,7 @@ export default function SongForm() {
   // Audio
   const [selectedFile, setSelectedFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const showAudioComingSoon = !isEditMode;
   const [audioSource, setAudioSource] = useState(() => {
     if (songToEdit?.audioUrl && !songToEdit.audioUrl.includes('/uploads/')) return 'url';
     return 'upload';
@@ -342,73 +343,82 @@ export default function SongForm() {
             <Music className="w-3.5 h-3.5 text-emerald-400" /> Reference Audio (Optional)
           </label>
 
-          {/* Source toggle */}
-          <div className="flex gap-1.5 p-1 bg-gray-950 border border-[#1f212d] rounded-2xl w-fit">
-            {['upload', 'url'].map(src => (
-              <button
-                key={src}
-                type="button"
-                onClick={() => setAudioSource(src)}
-                className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
-                  audioSource === src ? 'bg-[#111219] text-white border border-[#1f212d]' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                {src === 'upload' ? 'Upload MP3' : 'External URL'}
-              </button>
-            ))}
-          </div>
-
-          {audioSource === 'upload' ? (
-            <div className="space-y-2">
-              {isEditMode && songToEdit?.audioUrl && !selectedFile && (
-                <div className="flex items-center justify-between p-3 bg-emerald-950/20 border border-emerald-900/30 rounded-xl text-xs">
-                  <span className="text-emerald-400 font-medium truncate max-w-[80%]">Active: {songToEdit.audioUrl.split('/').pop()}</span>
-                  <span className="text-[10px] font-black uppercase text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-900/20">On Server</span>
-                </div>
-              )}
-              <div
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const file = e.dataTransfer.files[0];
-                  if (file && file.name.toLowerCase().endsWith('.mp3')) setSelectedFile(file);
-                }}
-                className="border border-dashed border-[#1f212d] hover:border-violet-500/50 rounded-2xl p-5 text-center transition-all bg-[#111219]/20 hover:bg-[#111219]/40 cursor-pointer relative"
-              >
-                <input
-                  type="file"
-                  accept="audio/mp3,audio/mpeg"
-                  onChange={(e) => { if (e.target.files?.[0]) setSelectedFile(e.target.files[0]); }}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
-                <div className="flex flex-col items-center gap-1.5">
-                  <Music className="w-7 h-7 text-gray-500" />
-                  {selectedFile ? (
-                    <div>
-                      <p className="text-xs font-bold text-white truncate max-w-[250px]">{selectedFile.name}</p>
-                      <p className="text-[10px] text-gray-500">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="text-xs font-bold text-gray-300">Click to choose or drag MP3 here</p>
-                      <p className="text-[10px] text-gray-500">Max 15MB · MP3 only</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {selectedFile && (
-                <button type="button" onClick={() => setSelectedFile(null)} className="text-xs font-bold text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors">
-                  <X className="w-3.5 h-3.5" /> Remove file
-                </button>
-              )}
+          {showAudioComingSoon ? (
+            <div className="rounded-2xl border border-dashed border-[#1f212d] bg-[#111219]/30 px-4 py-5 text-center space-y-1.5">
+              <p className="text-sm font-bold text-white">Coming soon</p>
+              <p className="text-xs text-gray-500">MP3 upload and external audio URL support will be available here later.</p>
             </div>
           ) : (
-            <input
-              type="url"
-              placeholder="e.g. https://domain.com/audio/hymn.mp3"
-              {...register('audioUrl')}
-              className="w-full px-4 py-3 bg-[#111219] border border-[#1f212d] focus:border-violet-500 rounded-2xl text-sm placeholder-gray-600 focus:outline-none transition-colors shadow-inner"
-            />
+            <>
+              {/* Source toggle */}
+              <div className="flex gap-1.5 p-1 bg-gray-950 border border-[#1f212d] rounded-2xl w-fit">
+                {['upload', 'url'].map(src => (
+                  <button
+                    key={src}
+                    type="button"
+                    onClick={() => setAudioSource(src)}
+                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                      audioSource === src ? 'bg-[#111219] text-white border border-[#1f212d]' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {src === 'upload' ? 'Upload MP3' : 'External URL'}
+                  </button>
+                ))}
+              </div>
+
+              {audioSource === 'upload' ? (
+                <div className="space-y-2">
+                  {isEditMode && songToEdit?.audioUrl && !selectedFile && (
+                    <div className="flex items-center justify-between p-3 bg-emerald-950/20 border border-emerald-900/30 rounded-xl text-xs">
+                      <span className="text-emerald-400 font-medium truncate max-w-[80%]">Active: {songToEdit.audioUrl.split('/').pop()}</span>
+                      <span className="text-[10px] font-black uppercase text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-900/20">On Server</span>
+                    </div>
+                  )}
+                  <div
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const file = e.dataTransfer.files[0];
+                      if (file && file.name.toLowerCase().endsWith('.mp3')) setSelectedFile(file);
+                    }}
+                    className="border border-dashed border-[#1f212d] hover:border-violet-500/50 rounded-2xl p-5 text-center transition-all bg-[#111219]/20 hover:bg-[#111219]/40 cursor-pointer relative"
+                  >
+                    <input
+                      type="file"
+                      accept="audio/mp3,audio/mpeg"
+                      onChange={(e) => { if (e.target.files?.[0]) setSelectedFile(e.target.files[0]); }}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <div className="flex flex-col items-center gap-1.5">
+                      <Music className="w-7 h-7 text-gray-500" />
+                      {selectedFile ? (
+                        <div>
+                          <p className="text-xs font-bold text-white truncate max-w-[250px]">{selectedFile.name}</p>
+                          <p className="text-[10px] text-gray-500">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-xs font-bold text-gray-300">Click to choose or drag MP3 here</p>
+                          <p className="text-[10px] text-gray-500">Max 15MB · MP3 only</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {selectedFile && (
+                    <button type="button" onClick={() => setSelectedFile(null)} className="text-xs font-bold text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors">
+                      <X className="w-3.5 h-3.5" /> Remove file
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <input
+                  type="url"
+                  placeholder="e.g. https://domain.com/audio/hymn.mp3"
+                  {...register('audioUrl')}
+                  className="w-full px-4 py-3 bg-[#111219] border border-[#1f212d] focus:border-violet-500 rounded-2xl text-sm placeholder-gray-600 focus:outline-none transition-colors shadow-inner"
+                />
+              )}
+            </>
           )}
         </div>
 
