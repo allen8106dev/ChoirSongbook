@@ -214,6 +214,7 @@ export default function SongForm() {
                 value={newLanguageInput}
                 onChange={(e) => { setNewLanguageInput(e.target.value); setShowLanguageSuggestions(true); }}
                 onFocus={() => setShowLanguageSuggestions(true)}
+                onBlur={() => setShowLanguageSuggestions(false)}
                 className="flex-1 px-3 py-2.5 bg-[#111219] border border-[#1f212d] focus:border-violet-500 rounded-xl text-sm placeholder-gray-600 focus:outline-none transition-colors"
               />
               <button type="button" onClick={() => addLanguage(newLanguageInput)} className="px-3 bg-violet-600 hover:bg-violet-500 text-white rounded-xl flex items-center justify-center transition-colors">
@@ -223,7 +224,7 @@ export default function SongForm() {
             {showLanguageSuggestions && languageSuggestions.length > 0 && (
               <ul className="absolute z-30 left-0 right-0 mt-1 bg-[#161722] border border-[#1f212d] rounded-xl shadow-xl max-h-36 overflow-y-auto divide-y divide-gray-800/50">
                 {languageSuggestions.map(lang => (
-                  <li key={lang} onClick={() => addLanguage(lang)} className="px-3 py-2 hover:bg-violet-950/20 text-sm font-semibold text-gray-300 hover:text-white cursor-pointer transition-colors">{lang}</li>
+                  <li key={lang} onMouseDown={(e) => e.preventDefault()} onClick={() => addLanguage(lang)} className="px-3 py-2 hover:bg-violet-950/20 text-sm font-semibold text-gray-300 hover:text-white cursor-pointer transition-colors">{lang}</li>
                 ))}
               </ul>
             )}
@@ -251,6 +252,7 @@ export default function SongForm() {
                 value={newCategoryInput}
                 onChange={(e) => { setNewCategoryInput(e.target.value); setShowCategorySuggestions(true); }}
                 onFocus={() => setShowCategorySuggestions(true)}
+                onBlur={() => setShowCategorySuggestions(false)}
                 className="flex-1 px-3 py-2.5 bg-[#111219] border border-[#1f212d] focus:border-violet-500 rounded-xl text-sm placeholder-gray-600 focus:outline-none transition-colors"
               />
               <button type="button" onClick={() => addCategory(newCategoryInput)} className="px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center transition-colors">
@@ -260,7 +262,7 @@ export default function SongForm() {
             {showCategorySuggestions && categorySuggestions.length > 0 && (
               <ul className="absolute z-30 left-0 right-0 mt-1 bg-[#161722] border border-[#1f212d] rounded-xl shadow-xl max-h-36 overflow-y-auto divide-y divide-gray-800/50">
                 {categorySuggestions.map(cat => (
-                  <li key={cat} onClick={() => addCategory(cat)} className="px-3 py-2 hover:bg-indigo-950/20 text-sm font-semibold text-gray-300 hover:text-white cursor-pointer transition-colors">{cat}</li>
+                  <li key={cat} onMouseDown={(e) => e.preventDefault()} onClick={() => addCategory(cat)} className="px-3 py-2 hover:bg-indigo-950/20 text-sm font-semibold text-gray-300 hover:text-white cursor-pointer transition-colors">{cat}</li>
                 ))}
               </ul>
             )}
