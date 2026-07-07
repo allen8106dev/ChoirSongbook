@@ -1,5 +1,5 @@
 import { NavLink, Link, useLocation } from 'react-router-dom';
-import { Music, PlusCircle, Settings, User, BookOpen } from 'lucide-react';
+import { Music, PlusCircle, Settings, Star, BookOpen } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 import AuthDropdown from './AuthDropdown';
 
@@ -14,7 +14,7 @@ export default function Layout({ children }) {
     { to: '/', label: 'Songbook', icon: BookOpen, exact: true },
     ...(isAtLeastAdmin ? [{ to: '/admin/add', label: 'Add Song', icon: PlusCircle }] : []),
     ...(isDeveloper ? [{ to: '/admin/settings', label: 'Console', icon: Settings }] : []),
-    { to: '/profile', label: 'Favourites', icon: User }
+    { to: '/profile', label: 'Favourites', icon: Star }
   ];
 
   return (

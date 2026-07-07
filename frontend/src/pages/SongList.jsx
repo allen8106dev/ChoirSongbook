@@ -4,6 +4,96 @@ import { Search, Globe, Tag, ChevronRight, X, Volume2, FileDown, SlidersHorizont
 import { useSongbook } from '../context/SongbookContext';
 import { API_BASE_URL } from '../services/api';
 
+function SongTagGroup({ label, items, toneClassName }) {
+  if (!items || items.length === 0) return null;
+
+  return (
+    <div className="space-y-1">
+      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">{label}</p>
+      <div className="flex flex-wrap gap-1">
+        {items.map((item) => (
+          <span key={item} className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${toneClassName}`}>
+            {item}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SongInfoPopover({ song, buttonClassName = '' }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
+  return (
+    <div ref={containerRef} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          setIsOpen((value) => !value);
+        }}
+        aria-label="Show song info"
+        aria-expanded={isOpen}
+        className={`inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-white/5 text-[11px] font-black text-gray-300 transition-colors hover:border-violet-500/40 hover:text-white hover:bg-violet-950/30 ${buttonClassName}`}
+      >
+        i
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 top-full z-50 mt-2 w-[min(18rem,calc(100vw-2rem))] rounded-2xl border border-[#26293a] bg-[#0f1118] p-3 text-left shadow-2xl shadow-black/40">
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">Song name</p>
+              <p className="text-sm font-bold leading-snug text-white break-words">{song.title}</p>
+            </div>
+
+            <SongTagGroup
+              label="Languages"
+              items={song.languages || []}
+              toneClassName="text-violet-300 bg-violet-950/30 border-violet-900/30"
+            />
+
+            <SongTagGroup
+              label="Categories"
+              items={song.categories || []}
+              toneClassName="text-indigo-300 bg-indigo-950/30 border-indigo-900/30"
+            />
+
+            {(!song.languages || song.languages.length === 0) && (!song.categories || song.categories.length === 0) && (
+              <p className="text-xs text-gray-500">No tags available for this song.</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── PDF Export Modal ────────────────────────────────────────────────────────
 function PdfExportModal({ isOpen, onClose, languages, categories, initialSearch, initialLanguages, initialCategories }) {
   const [search, setSearch] = useState(initialSearch);
@@ -378,23 +468,12 @@ export default function SongList() {
                       <div className="w-8 h-8 rounded-lg bg-gray-900 border border-white/5 flex items-center justify-center font-bold text-[10px] text-gray-500 shrink-0 group-hover:bg-violet-950/20 group-hover:text-violet-400 transition-colors">
                         {song.number}
                       </div>
-                      {/* Title + tags */}
-                      <div className="min-w-0 flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-white text-sm leading-tight group-hover:text-violet-400 transition-colors truncate">
+                      {/* Title */}
+                      <div className="min-w-0 flex items-center gap-2 flex-1">
+                        <h3 className="font-semibold text-white text-sm leading-tight group-hover:text-violet-400 transition-colors overflow-hidden whitespace-nowrap text-clip flex-1 min-w-0">
                           {song.title}
                         </h3>
-                        <div className="flex items-center gap-1 flex-wrap">
-                          {song.languages.map((l) => (
-                            <span key={l} className="text-[9px] font-bold text-violet-400 bg-violet-950/20 border border-violet-900/30 px-1.5 py-0.5 rounded">
-                              {l}
-                            </span>
-                          ))}
-                          {song.categories.map((c) => (
-                            <span key={c} className="text-[9px] font-bold text-indigo-400 bg-indigo-950/20 border border-indigo-900/30 px-1.5 py-0.5 rounded">
-                              {c}
-                            </span>
-                          ))}
-                        </div>
+                        <SongInfoPopover song={song} />
                       </div>
                     </div>
 
