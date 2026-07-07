@@ -220,7 +220,7 @@ export default function SongForm() {
                 <Plus className="w-4 h-4" />
               </button>
             </div>
-            {showLanguageSuggestions && newLanguageInput && languageSuggestions.length > 0 && (
+            {showLanguageSuggestions && languageSuggestions.length > 0 && (
               <ul className="absolute z-30 left-0 right-0 mt-1 bg-[#161722] border border-[#1f212d] rounded-xl shadow-xl max-h-36 overflow-y-auto divide-y divide-gray-800/50">
                 {languageSuggestions.map(lang => (
                   <li key={lang} onClick={() => addLanguage(lang)} className="px-3 py-2 hover:bg-violet-950/20 text-sm font-semibold text-gray-300 hover:text-white cursor-pointer transition-colors">{lang}</li>
@@ -257,7 +257,7 @@ export default function SongForm() {
                 <Plus className="w-4 h-4" />
               </button>
             </div>
-            {showCategorySuggestions && newCategoryInput && categorySuggestions.length > 0 && (
+            {showCategorySuggestions && categorySuggestions.length > 0 && (
               <ul className="absolute z-30 left-0 right-0 mt-1 bg-[#161722] border border-[#1f212d] rounded-xl shadow-xl max-h-36 overflow-y-auto divide-y divide-gray-800/50">
                 {categorySuggestions.map(cat => (
                   <li key={cat} onClick={() => addCategory(cat)} className="px-3 py-2 hover:bg-indigo-950/20 text-sm font-semibold text-gray-300 hover:text-white cursor-pointer transition-colors">{cat}</li>
