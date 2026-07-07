@@ -461,23 +461,23 @@ export default function SongList() {
                   <div
                     key={song.id}
                     onClick={() => navigate(`/song/${song.id}`)}
-                    className="flex items-center justify-between px-3.5 py-2.5 bg-[#111219] hover:bg-[#161722] border border-[#1f212d]/70 hover:border-violet-500/30 rounded-xl cursor-pointer transition-all duration-150 group shadow-sm hover:shadow-violet-500/5"
+                    className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3.5 py-2.5 bg-[#111219] hover:bg-[#161722] border border-[#1f212d]/70 hover:border-violet-500/30 rounded-xl cursor-pointer transition-all duration-150 group shadow-sm hover:shadow-violet-500/5"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
                       {/* Song number */}
                       <div className="w-8 h-8 rounded-lg bg-gray-900 border border-white/5 flex items-center justify-center font-bold text-[10px] text-gray-500 shrink-0 group-hover:bg-violet-950/20 group-hover:text-violet-400 transition-colors">
                         {song.number}
                       </div>
                       {/* Title */}
-                      <div className="min-w-0 flex items-center gap-2 flex-1">
-                        <h3 className="font-semibold text-white text-sm leading-tight group-hover:text-violet-400 transition-colors overflow-hidden whitespace-nowrap text-clip flex-1 min-w-0">
+                      <div className="min-w-0 flex items-center gap-2">
+                        <h3 className="min-w-0 flex-1 overflow-hidden whitespace-nowrap text-clip font-semibold text-white text-sm leading-tight group-hover:text-violet-400 transition-colors">
                           {song.title}
                         </h3>
                         <SongInfoPopover song={song} />
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 text-gray-500 group-hover:text-gray-300 transition-colors pl-2 shrink-0">
+                    <div className="flex items-center gap-2 justify-self-end text-gray-500 group-hover:text-gray-300 transition-colors pl-2 shrink-0">
                       {song.audioUrl && <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
                       {currentUser.email && (
                         <button
