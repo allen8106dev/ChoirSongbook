@@ -12,12 +12,25 @@ export default function SongDetail() {
   const song = songs.find(s => s.id === id);
 
   // States
-  const [fontSize, setFontSize] = useState(18); // Default 18px
-  const [showTransliteration, setShowTransliteration] = useState(false);
+  const [fontSize, setFontSize] = useState(18);
+  const [activeLyricSection, setActiveLyricSection] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [playbackRate, setPlaybackRate] = useState(1); // Pitch / Speed control
+  const [playbackRate, setPlaybackRate] = useState(1);
+
+  // Parse lyric sections from stored lyrics string
+  const lyricSections = (() => {
+    if (!song?.lyrics) return [{ heading: '', text: '' }];
+    const sectionRegex = /^===\s*(.+?)\s*===/m;
+    if (!sectionRegex.test(song.lyrics)) return [{ heading: '', text: song.lyrics }];
+    const parts = song.lyrics.split(/\n*===\s*(.+?)\s*===\n*/);
+    const sections = [];
+    for (let i = 1; i < parts.length; i += 2) {
+      sections.push({ heading: parts[i] || '', text: (parts[i + 1] || '').trim() });
+    }
+    return sections.length > 0 ? sections : [{ heading: '', text: song.lyrics }];
+  })();
 
   const audioRef = useRef(null);
 
@@ -113,29 +126,20 @@ export default function SongDetail() {
         </button>
 
         <div className="flex items-center gap-2">
-          {/* Transliteration Tab Toggle if data exists */}
-          {song.transliteration && (
-            <div className="flex bg-[#111219] border border-[#1f212d] rounded-xl p-1 shrink-0">
-              <button
-                onClick={() => setShowTransliteration(false)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  !showTransliteration
-                    ? 'bg-violet-600 text-white'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Original
-              </button>
-              <button
-                onClick={() => setShowTransliteration(true)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  showTransliteration
-                    ? 'bg-violet-600 text-white'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Romanized
-              </button>
+          {/* Multi-section lyric tabs (shown when song has multiple sections) */}
+          {lyricSections.length > 1 && (
+            <div className="flex bg-[#111219] border border-[#1f212d] rounded-xl p-1 gap-1 shrink-0">
+              {lyricSections.map((section, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveLyricSection(idx)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    activeLyricSection === idx ? 'bg-violet-600 text-white' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {section.heading || `Section ${idx + 1}`}
+                </button>
+              ))}
             </div>
           )}
 
@@ -220,9 +224,9 @@ export default function SongDetail() {
         {/* Lyric Content Body */}
         <div
           style={{ fontSize: `${fontSize}px` }}
-          className="lyrics-text font-serif text-gray-100 px-2 leading-relaxed tracking-normal select-none"
+          className="lyrics-text font-serif text-gray-100 px-2 leading-relaxed tracking-normal select-none whitespace-pre-wrap"
         >
-          {showTransliteration ? song.transliteration : song.lyrics}
+          {lyricSections[activeLyricSection]?.text || lyricSections[0]?.text || ''}
         </div>
       </div>
 
