@@ -47,26 +47,26 @@ export default function AdminSettings() {
 
   // Reusable list row — handles both view and edit mode
   const TagRow = ({ name, isEditing, editValue, onEdit, onEditChange, onEditSubmit, onEditCancel, onDelete, accentClass }) => (
-    <div className="p-3 bg-gray-900/30 border border-[#1f212d]/60 rounded-xl">
+    <div className="w-full p-3 bg-gray-900/30 border border-[#1f212d]/60 rounded-xl">
       {isEditing ? (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
           <input
             type="text"
             value={editValue}
             onChange={onEditChange}
-            className="flex-1 min-w-0 px-3 py-1.5 bg-gray-950 border border-violet-500/60 rounded-xl text-xs text-white focus:outline-none"
+            className="w-full flex-1 min-w-0 px-3 py-1.5 bg-gray-950 border border-violet-500/60 rounded-xl text-xs text-white focus:outline-none"
             autoFocus
           />
-          <button onClick={onEditSubmit} className="p-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 shrink-0">
+          <button onClick={onEditSubmit} className="w-full sm:w-auto p-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 shrink-0">
             <Check className="w-3.5 h-3.5" />
           </button>
-          <button onClick={onEditCancel} className="p-1.5 bg-gray-800 text-gray-400 rounded-lg hover:text-white shrink-0">
+          <button onClick={onEditCancel} className="w-full sm:w-auto p-1.5 bg-gray-800 text-gray-400 rounded-lg hover:text-white shrink-0">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
       ) : (
-        <div className="flex items-center justify-between gap-2">
-          <span className={`text-xs font-semibold truncate min-w-0 ${accentClass || 'text-gray-300'}`}>{name}</span>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <span className={`text-xs font-semibold break-all min-w-0 ${accentClass || 'text-gray-300'}`}>{name}</span>
           <div className="flex gap-1.5 shrink-0">
             <button onClick={onEdit} className="p-1.5 rounded-lg text-gray-500 hover:text-violet-400 hover:bg-violet-950/20 transition-colors" title="Rename">
               <Edit2 className="w-3.5 h-3.5" />
@@ -83,18 +83,18 @@ export default function AdminSettings() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-violet-950/40 border border-violet-900/30 flex items-center justify-center shrink-0">
           <ShieldAlert className="w-5 h-5 text-violet-400" />
         </div>
         <div className="min-w-0">
-          <h2 className="text-xl font-bold text-white">Developer Console</h2>
+          <h2 className="text-xl font-bold text-white leading-tight">Developer Console</h2>
           <p className="text-xs text-gray-500">Manage admin privileges, language tags, and global categories</p>
         </div>
       </div>
 
       {/* Admin Email Management */}
-      <div className="p-5 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4">
+      <div className="w-full p-4 sm:p-5 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4 overflow-hidden">
         <div>
           <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
             <Mail className="w-4 h-4 text-violet-400" /> Admin Access Controls
@@ -107,18 +107,18 @@ export default function AdminSettings() {
         {/* Admin list */}
         <div className="grid gap-2">
           {adminEmails.map((email) => (
-            <div key={email} className="flex items-center justify-between gap-2 p-3 bg-gray-900/30 border border-[#1f212d]/60 rounded-xl">
-              <span className="text-xs font-semibold text-gray-300 truncate min-w-0">{email}</span>
+            <div key={email} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-gray-900/30 border border-[#1f212d]/60 rounded-xl">
+              <span className="text-xs font-semibold text-gray-300 break-all min-w-0">{email}</span>
               {email !== 'allen@example.com' ? (
                 <button
                   onClick={() => removeAdminEmail(email)}
-                  className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-950/20 transition-colors shrink-0"
+                  className="self-start sm:self-auto p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-950/20 transition-colors shrink-0"
                   title="Remove Admin Role"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               ) : (
-                <span className="text-[9px] font-black uppercase text-violet-400 bg-violet-950/20 border border-violet-900/30 px-2 py-0.5 rounded shrink-0">
+                <span className="self-start sm:self-auto text-[9px] font-black uppercase text-violet-400 bg-violet-950/20 border border-violet-900/30 px-2 py-0.5 rounded shrink-0">
                   Primary Dev
                 </span>
               )}
@@ -148,7 +148,7 @@ export default function AdminSettings() {
       </div>
 
       {/* Global Languages Editor */}
-      <div className="p-5 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4">
+      <div className="w-full p-4 sm:p-5 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4 overflow-hidden">
         <div>
           <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
             <Globe className="w-4 h-4 text-violet-400" /> Manage Language Tags
@@ -180,7 +180,7 @@ export default function AdminSettings() {
       </div>
 
       {/* Global Categories Editor */}
-      <div className="p-5 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4">
+      <div className="w-full p-4 sm:p-5 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4 overflow-hidden">
         <div>
           <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
             <Tag className="w-4 h-4 text-indigo-400" /> Manage Categories
