@@ -153,6 +153,10 @@ export default function AdminSettings() {
       </div>
 
       {/* Global Languages Editor */}
+      <div className="w-full p-4 sm:p-5 bg-[#111219] border border-[#1f212d] rounded-2xl">
+      <h3 className="text-white">Language section removed for testing</h3>
+      </div>
+      {/*
       <div className="w-full p-4 sm:p-5 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4 overflow-hidden">
         <div>
           <h3 className="flex items-center gap-2 text-[15px] sm:text-sm font-semibold text-white sm:uppercase sm:tracking-wider">
@@ -182,7 +186,7 @@ export default function AdminSettings() {
             <p className="text-sm text-gray-600 text-center py-4">No language tags yet</p>
           )}
         </div>
-      </div>
+      </div>*/}
 
       {/* Global Categories Editor */}
       <div className="w-full p-4 sm:p-5 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4 overflow-hidden">
