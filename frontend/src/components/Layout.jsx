@@ -62,7 +62,7 @@ export default function Layout({ children }) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 pb-20 md:pb-0 overflow-x-hidden">
         {/* Mobile Header */}
-        <header className="md:hidden flex items-center justify-between px-4 py-3 bg-[#111219] border-b border-[#1f212d] sticky top-0 z-30">
+        <header className="md:hidden flex items-center justify-between px-4 py-3 bg-[#111219] border-b border-[#1f212d] relative">
           <Link to="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-md shrink-0">
               <Music className="w-4 h-4 text-white" />
