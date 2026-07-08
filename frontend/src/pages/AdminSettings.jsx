@@ -152,41 +152,56 @@ export default function AdminSettings() {
         </form>
       </div>
 
-      {/* Global Languages Editor */}
-      <div className="w-full p-4 sm:p-5 bg-[#111219] border border-[#1f212d] rounded-2xl">
-      <h3 className="text-white">Language section removed for testing</h3>
-      </div>
-      {/*
-      <div className="w-full p-4 sm:p-5 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4 overflow-hidden">
-        <div>
-          <h3 className="flex items-center gap-2 text-[15px] sm:text-sm font-semibold text-white sm:uppercase sm:tracking-wider">
-            <Globe className="w-4 h-4 text-violet-400" /> Manage Language Tags
-          </h3>
-          <p className="text-sm sm:text-xs text-gray-400 mt-1">
-            Renaming updates all songs. Deleting removes the tag globally.
-          </p>
-        </div>
+  {/* Global Languages Editor */}
+  <div className="w-full p-4 sm:p-5 bg-[#111219] border border-[#1f212d] rounded-2xl space-y-4">
+    <div>
+      <h3 className="flex items-center gap-2 text-[15px] sm:text-sm font-semibold text-white sm:uppercase sm:tracking-wider">
+        <Globe className="w-4 h-4 text-violet-400" />
+        Manage Language Tags
+      </h3>
 
-        <div className="grid gap-3">
-          {languages.map((lang) => (
-            <TagRow
-              key={lang}
-              name={lang}
-              isEditing={editingLanguage?.oldName === lang}
-              editValue={editingLanguage?.newName ?? lang}
-              onEdit={() => setEditingLanguage({ oldName: lang, newName: lang })}
-              onEditChange={(e) => setEditingLanguage({ ...editingLanguage, newName: e.target.value })}
-              onEditSubmit={() => handleRenameLanguageSubmit(lang)}
-              onEditCancel={() => setEditingLanguage(null)}
-              onDelete={() => deleteLanguage(lang)}
-              accentClass="text-violet-300"
-            />
-          ))}
-          {languages.length === 0 && (
-            <p className="text-sm text-gray-600 text-center py-4">No language tags yet</p>
-          )}
+      <p className="text-sm sm:text-xs text-gray-400 mt-1">
+        Renaming updates all songs. Deleting removes the tag globally.
+      </p>
+    </div>
+
+    <div className="space-y-2">
+      {languages.map((lang) => (
+        <div
+          key={lang}
+          className="flex items-center justify-between border border-[#1f212d] rounded-xl p-3"
+        >
+          <span className="text-violet-300 font-medium">
+            {lang}
+          </span>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() =>
+                setEditingLanguage({ oldName: lang, newName: lang })
+              }
+              className="px-3 py-2 rounded-lg bg-gray-800 text-white text-sm"
+            >
+              Rename
+            </button>
+
+            <button
+              onClick={() => deleteLanguage(lang)}
+              className="px-3 py-2 rounded-lg bg-red-900 text-white text-sm"
+            >
+              Delete
+            </button>
+          </div>
         </div>
-      </div>*/}
+      ))}
+
+    {languages.length === 0 && (
+      <p className="text-sm text-gray-600 text-center py-4">
+        No language tags yet
+      </p>
+    )}
+  </div>
+</div>
 
       {/* Global Categories Editor */}
       <div className="w-full p-4 sm:p-5 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4 overflow-hidden">
