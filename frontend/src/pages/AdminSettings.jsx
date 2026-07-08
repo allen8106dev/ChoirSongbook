@@ -45,43 +45,58 @@ export default function AdminSettings() {
     setEditingCategory(null);
   };
 
-  // Reusable list row — handles both view and edit mode
-  const TagRow = ({ name, isEditing, editValue, onEdit, onEditChange, onEditSubmit, onEditCancel, onDelete, accentClass }) => (
-    <div className="w-full rounded-2xl border border-[#1f212d]/60 bg-gray-900/30 p-4 sm:p-3">
+  const RowShell = ({ children }) => (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-[#1f212d] bg-gray-900/30 p-3">
+      {children}
+    </div>
+  );
+
+  const EditableRow = ({
+    name,
+    isEditing,
+    editValue,
+    onEdit,
+    onEditChange,
+    onEditSubmit,
+    onEditCancel,
+    onDelete,
+    accentClass,
+    inputBorderClass = 'border-violet-500/60',
+    saveButtonClass = 'bg-emerald-600 hover:bg-emerald-500',
+  }) => (
+    <RowShell>
       {isEditing ? (
-        <div className="grid gap-3">
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
           <input
             type="text"
             value={editValue}
             onChange={onEditChange}
-            className="w-full min-w-0 px-4 py-3 bg-gray-950 border border-violet-500/60 rounded-2xl text-sm text-white focus:outline-none"
+            className={`min-w-0 flex-1 rounded-2xl bg-gray-950 px-4 py-3 text-sm text-white focus:outline-none border ${inputBorderClass}`}
             autoFocus
           />
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
-            <button onClick={onEditSubmit} className="inline-flex items-center justify-center gap-1.5 min-h-11 px-4 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-500 shrink-0 text-sm font-semibold">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
+            <button onClick={onEditSubmit} className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl px-4 text-sm font-semibold text-white ${saveButtonClass}`}>
               <Check className="w-4 h-4" /> Save
             </button>
-            <button onClick={onEditCancel} className="inline-flex items-center justify-center gap-1.5 min-h-11 px-4 bg-gray-800 text-gray-300 rounded-2xl hover:text-white shrink-0 text-sm font-semibold">
+            <button onClick={onEditCancel} className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl bg-gray-800 px-4 text-sm font-semibold text-gray-300 hover:text-white">
               <X className="w-4 h-4" /> Cancel
             </button>
           </div>
         </div>
       ) : (
-        <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
-          <span className={`min-w-0 text-sm font-semibold leading-snug break-words ${accentClass || 'text-gray-300'}`}>{name}</span>
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-1.5 sm:shrink-0">
-            <button onClick={onEdit} className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl bg-gray-800/60 px-3 text-gray-200 transition-colors hover:bg-violet-950/20 hover:text-violet-300 sm:min-h-0 sm:p-1.5 sm:text-gray-500 sm:hover:bg-violet-950/20" title="Rename">
+        <>
+          <span className={`min-w-0 break-words text-sm font-medium leading-snug ${accentClass || 'text-gray-300'}`}>{name}</span>
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0 sm:gap-1.5">
+            <button onClick={onEdit} className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-gray-800/60 px-3 text-gray-200 transition-colors hover:bg-violet-950/20 hover:text-violet-300 sm:min-h-0 sm:p-1.5 sm:text-gray-500 sm:hover:bg-violet-950/20" title="Edit" aria-label="Edit">
               <Edit2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-              <span className="sm:hidden text-sm font-semibold">Rename</span>
             </button>
-            <button onClick={onDelete} className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl bg-gray-800/60 px-3 text-gray-200 transition-colors hover:bg-red-950/20 hover:text-red-300 sm:min-h-0 sm:p-1.5 sm:text-gray-500 sm:hover:bg-red-950/20" title="Delete">
+            <button onClick={onDelete} className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-gray-800/60 px-3 text-gray-200 transition-colors hover:bg-red-950/20 hover:text-red-300 sm:min-h-0 sm:p-1.5 sm:text-gray-500 sm:hover:bg-red-950/20" title="Delete" aria-label="Delete">
               <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-              <span className="sm:hidden text-sm font-semibold">Delete</span>
             </button>
           </div>
-        </div>
+        </>
       )}
-    </div>
+    </RowShell>
   );
 
   return (
@@ -111,23 +126,23 @@ export default function AdminSettings() {
         {/* Admin list */}
         <div className="grid gap-3">
           {adminEmails.map((email) => (
-            <div key={email} className="grid gap-3 rounded-2xl border border-[#1f212d]/60 bg-gray-900/30 p-4">
-              <span className="min-w-0 break-words text-sm font-semibold text-gray-200 leading-snug">{email}</span>
+            <RowShell key={email}>
+              <span className="min-w-0 break-words text-sm font-medium leading-snug text-gray-200">{email}</span>
               {email !== 'allen@example.com' ? (
                 <button
                   onClick={() => removeAdminEmail(email)}
-                  className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl bg-gray-800/60 px-4 text-sm font-semibold text-gray-200 transition-colors hover:bg-red-950/20 hover:text-red-300 sm:min-h-0 sm:w-fit sm:px-3 sm:py-1.5 sm:text-gray-500 sm:hover:bg-red-950/20 sm:justify-self-end"
+                  className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-gray-800/60 px-4 text-sm font-semibold text-gray-200 transition-colors hover:bg-red-950/20 hover:text-red-300 sm:min-h-0 sm:w-fit sm:px-3 sm:py-1.5 sm:text-gray-500 sm:hover:bg-red-950/20 sm:justify-self-end"
                   title="Remove Admin Role"
+                  aria-label="Remove Admin Role"
                 >
                   <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-                  <span>Remove</span>
                 </button>
               ) : (
                 <span className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-violet-900/30 bg-violet-950/20 px-4 text-sm font-semibold text-violet-300 sm:min-h-0 sm:w-fit sm:px-3 sm:py-1.5 sm:text-[9px] sm:font-black sm:uppercase sm:justify-self-end">
                   Primary Dev
                 </span>
               )}
-            </div>
+            </RowShell>
           ))}
         </div>
 
@@ -152,8 +167,8 @@ export default function AdminSettings() {
         </form>
       </div>
 
-  {/* Global Languages Editor */}
-  <div className="w-full p-4 sm:p-5 bg-[#111219] border border-[#1f212d] rounded-2xl space-y-4">
+      {/* Global Languages Editor */}
+      <div className="w-full p-4 sm:p-5 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4 overflow-hidden">
     <div>
       <h3 className="flex items-center gap-2 text-[15px] sm:text-sm font-semibold text-white sm:uppercase sm:tracking-wider">
         <Globe className="w-4 h-4 text-violet-400" />
@@ -165,43 +180,30 @@ export default function AdminSettings() {
       </p>
     </div>
 
-    <div className="space-y-2">
+    <div className="grid gap-3">
       {languages.map((lang) => (
-        <div
+        <EditableRow
           key={lang}
-          className="flex items-center justify-between border border-[#1f212d] rounded-xl p-3"
-        >
-          <span className="text-violet-300 font-medium">
-            {lang}
-          </span>
-
-          <div className="flex gap-2">
-            <button
-              onClick={() =>
-                setEditingLanguage({ oldName: lang, newName: lang })
-              }
-              className="px-3 py-2 rounded-lg bg-gray-800 text-white text-sm"
-            >
-              Rename
-            </button>
-
-            <button
-              onClick={() => deleteLanguage(lang)}
-              className="px-3 py-2 rounded-lg bg-red-900 text-white text-sm"
-            >
-              Delete
-            </button>
-          </div>
-        </div>
+          name={lang}
+          isEditing={editingLanguage?.oldName === lang}
+          editValue={editingLanguage?.newName ?? lang}
+          onEdit={() => setEditingLanguage({ oldName: lang, newName: lang })}
+          onEditChange={(e) => setEditingLanguage((current) => ({ ...(current || { oldName: lang }), newName: e.target.value }))}
+          onEditSubmit={() => handleRenameLanguageSubmit(lang)}
+          onEditCancel={() => setEditingLanguage(null)}
+          onDelete={() => deleteLanguage(lang)}
+          accentClass="text-violet-300"
+          saveButtonClass="bg-violet-600 hover:bg-violet-500"
+        />
       ))}
 
-    {languages.length === 0 && (
-      <p className="text-sm text-gray-600 text-center py-4">
-        No language tags yet
-      </p>
-    )}
-  </div>
-</div>
+      {languages.length === 0 && (
+        <p className="py-4 text-center text-sm text-gray-600">
+          No language tags yet
+        </p>
+      )}
+      </div>
+      </div>
 
       {/* Global Categories Editor */}
       <div className="w-full p-4 sm:p-5 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4 overflow-hidden">
@@ -216,17 +218,18 @@ export default function AdminSettings() {
 
         <div className="grid gap-3">
           {categories.map((cat) => (
-            <TagRow
+            <EditableRow
               key={cat}
               name={cat}
               isEditing={editingCategory?.oldName === cat}
               editValue={editingCategory?.newName ?? cat}
               onEdit={() => setEditingCategory({ oldName: cat, newName: cat })}
-              onEditChange={(e) => setEditingCategory({ ...editingCategory, newName: e.target.value })}
+              onEditChange={(e) => setEditingCategory((current) => ({ ...(current || { oldName: cat }), newName: e.target.value }))}
               onEditSubmit={() => handleRenameCategorySubmit(cat)}
               onEditCancel={() => setEditingCategory(null)}
               onDelete={() => deleteCategory(cat)}
               accentClass="text-indigo-300"
+              saveButtonClass="bg-emerald-600 hover:bg-emerald-500"
             />
           ))}
           {categories.length === 0 && (
