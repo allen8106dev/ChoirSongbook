@@ -21,12 +21,26 @@ def export_songbook_pdf(
     search: str = None,
     categories: List[str] = Query(None),
     languages: List[str] = Query(None),
+    filter_mode: str = Query("any"),
     db: Session = Depends(get_db)
 ):
     """
     Export the songbook as a professionally styled printable PDF (context-aware of search/category/language filters).
     """
+    if filter_mode not in {"any", "all"}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="filter_mode must be either 'any' or 'all'."
+        )
+
     songs = crud.get_songs(db)
+
+    def matches_selected_values(selected_values: List[str], song_values: List[str]) -> bool:
+        if not selected_values:
+            return True
+        if filter_mode == "all":
+            return all(value in song_values for value in selected_values)
+        return any(value in song_values for value in selected_values)
     
     # Apply search, language, category filters
     filtered_songs = []
@@ -43,17 +57,15 @@ def export_songbook_pdf(
             if not (matches_title or matches_lyrics or matches_trans or matches_lang or matches_cat):
                 continue
                 
-        # 2. Languages Filter (matches ANY of selected languages)
-        if languages:
-            song_lang_names = [l.name for l in song.languages]
-            if not any(lang in song_lang_names for lang in languages):
-                continue
-                
-        # 3. Categories Filter (matches ANY of selected categories)
-        if categories:
-            song_cat_names = [c.name for c in song.categories]
-            if not any(cat in song_cat_names for cat in categories):
-                continue
+        # 2. Languages Filter
+        song_lang_names = [l.name for l in song.languages]
+        if not matches_selected_values(languages or [], song_lang_names):
+            continue
+
+        # 3. Categories Filter
+        song_cat_names = [c.name for c in song.categories]
+        if not matches_selected_values(categories or [], song_cat_names):
+            continue
                 
         filtered_songs.append(song)
         

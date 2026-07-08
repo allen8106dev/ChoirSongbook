@@ -95,16 +95,18 @@ function SongInfoPopover({ song, buttonClassName = '' }) {
 }
 
 // ─── PDF Export Modal ────────────────────────────────────────────────────────
-function PdfExportModal({ isOpen, onClose, languages, categories, initialSearch, initialLanguages, initialCategories }) {
+function PdfExportModal({ isOpen, onClose, languages, categories, initialSearch, initialLanguages, initialCategories, initialFilterMode }) {
   const [search, setSearch] = useState(initialSearch);
   const [selLangs, setSelLangs] = useState(initialLanguages);
   const [selCats, setSelCats] = useState(initialCategories);
+  const [filterMode, setFilterMode] = useState(initialFilterMode);
 
   useEffect(() => {
     if (isOpen) {
       setSearch(initialSearch);
       setSelLangs(initialLanguages);
       setSelCats(initialCategories);
+      setFilterMode(initialFilterMode);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -124,6 +126,7 @@ function PdfExportModal({ isOpen, onClose, languages, categories, initialSearch,
     if (search) params.append('search', search);
     selLangs.forEach(l => params.append('languages', l));
     selCats.forEach(c => params.append('categories', c));
+    params.append('filter_mode', filterMode);
     const qs = params.toString();
     window.open(`${API_BASE_URL}/songs/pdf${qs ? '?' + qs : ''}`, '_blank');
     onClose();
@@ -200,6 +203,26 @@ function PdfExportModal({ isOpen, onClose, languages, categories, initialSearch,
               </div>
             </div>
 
+            <div>
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <SlidersHorizontal className="w-3 h-3" /> Match Mode
+              </label>
+              <div className="flex rounded-xl border border-[#1f212d] bg-[#0c0d13] p-1">
+                <button
+                  onClick={() => setFilterMode('any')}
+                  className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${filterMode === 'any' ? 'bg-violet-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                >
+                  Any
+                </button>
+                <button
+                  onClick={() => setFilterMode('all')}
+                  className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${filterMode === 'all' ? 'bg-violet-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                >
+                  All
+                </button>
+              </div>
+            </div>
+
             {activeCount > 0 && (
               <div className="flex items-center justify-between pt-1">
                 <p className="text-xs text-gray-500">Only matching songs will be included.</p>
@@ -229,6 +252,7 @@ export default function SongList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLanguages, setSelectedLanguages] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
+  const [filterMode, setFilterMode] = useState('any');
   const [showFilters, setShowFilters] = useState(false);
   const [showPdfModal, setShowPdfModal] = useState(false);
 
@@ -253,6 +277,7 @@ export default function SongList() {
     setSearchQuery('');
     setSelectedLanguages([]);
     setSelectedCategories([]);
+    setFilterMode('any');
   };
 
   const activeFilterCount = selectedLanguages.length + selectedCategories.length;
@@ -266,11 +291,17 @@ export default function SongList() {
         (song.transliteration && song.transliteration.toLowerCase().includes(query)) ||
         song.languages.some(lang => lang.toLowerCase().includes(query)) ||
         song.categories.some(cat => cat.toLowerCase().includes(query));
-      const matchesLanguage = selectedLanguages.length === 0 || song.languages.some(lang => selectedLanguages.includes(lang));
-      const matchesCategory = selectedCategories.length === 0 || song.categories.some(cat => selectedCategories.includes(cat));
-      return matchesSearch && matchesLanguage && matchesCategory;
+      const matchesSelectedValues = (selectedValues, songValues) => {
+        if (selectedValues.length === 0) return true;
+        return filterMode === 'all'
+          ? selectedValues.every(value => songValues.includes(value))
+          : selectedValues.some(value => songValues.includes(value));
+      };
+
+      const matchesFilters = matchesSelectedValues(selectedLanguages, song.languages) && matchesSelectedValues(selectedCategories, song.categories);
+      return matchesSearch && matchesFilters;
     });
-  }, [songs, searchQuery, selectedLanguages, selectedCategories]);
+  }, [songs, searchQuery, selectedLanguages, selectedCategories, filterMode]);
 
   const groupedSongs = useMemo(() => {
     const groups = {};
@@ -302,6 +333,7 @@ export default function SongList() {
         initialSearch={searchQuery}
         initialLanguages={selectedLanguages}
         initialCategories={selectedCategories}
+        initialFilterMode={filterMode}
       />
 
       {/* Header */}
@@ -410,6 +442,26 @@ export default function SongList() {
                   </button>
                 </div>
               )}
+
+              <div>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                  <SlidersHorizontal className="w-3 h-3" /> Match Mode
+                </p>
+                <div className="flex rounded-xl border border-[#1f212d] bg-[#0c0d13] p-1">
+                  <button
+                    onClick={() => setFilterMode('any')}
+                    className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${filterMode === 'any' ? 'bg-violet-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                  >
+                    Any
+                  </button>
+                  <button
+                    onClick={() => setFilterMode('all')}
+                    className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${filterMode === 'all' ? 'bg-violet-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                  >
+                    All
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
