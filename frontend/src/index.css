@@ -17,7 +17,7 @@
 
 /* Set dark mode preferences and default typography */
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
 }
 

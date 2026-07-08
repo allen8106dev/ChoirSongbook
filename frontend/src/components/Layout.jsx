@@ -1,3 +1,4 @@
+import { useLayoutEffect } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { Music, PlusCircle, Settings, Star, BookOpen } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
@@ -6,6 +7,10 @@ import AuthDropdown from './AuthDropdown';
 export default function Layout({ children }) {
   const { currentUser } = useSongbook();
   const location = useLocation();
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [location.pathname]);
 
   const isAtLeastAdmin =
     currentUser.role === 'admin' || currentUser.role === 'developer';
