@@ -79,7 +79,7 @@ export default function Layout({ children }) {
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed inset-x-0 bottom-0 h-16 w-full max-w-full box-border bg-[#111219]/95 backdrop-blur-md border-t border-[#1f212d] flex items-center justify-around px-3 z-40 overflow-x-hidden">
+      <nav className="md:hidden fixed inset-x-0 bottom-0 h-16 w-full max-w-full box-border bg-[#111219]/95 border-t border-[#1f212d] flex items-center justify-around px-3 z-40 overflow-x-hidden">
         {navItems.map((item) => {
           const isActive = item.exact
             ? location.pathname === item.to
