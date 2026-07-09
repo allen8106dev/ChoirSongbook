@@ -1,14 +1,19 @@
 import { useState } from 'react';
-import { Mail, Plus, Trash2, Edit2, Globe, Tag, Check, X, ShieldAlert } from 'lucide-react';
+import { Mail, Plus, Trash2, Edit2, Globe, Tag, Check, X, ShieldAlert, Building2 } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 
 export default function AdminSettings() {
   const {
     languages,
     categories,
+    organizations,
+    activeOrganization,
+    activeOrganizationId,
+    switchOrganization,
     adminEmails,
     addAdminEmail,
     removeAdminEmail,
+    createOrganization,
     renameCategory,
     deleteCategory,
     renameLanguage,
@@ -16,7 +21,9 @@ export default function AdminSettings() {
   } = useSongbook();
 
   const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newOrganizationName, setNewOrganizationName] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [organizationError, setOrganizationError] = useState('');
   const [editingLanguage, setEditingLanguage] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
 
@@ -31,6 +38,22 @@ export default function AdminSettings() {
     }
     addAdminEmail(email);
     setNewAdminEmail('');
+  };
+
+  const handleCreateOrganization = async (e) => {
+    e.preventDefault();
+    setOrganizationError('');
+    const name = newOrganizationName.trim();
+    if (!name) {
+      setOrganizationError('Please enter an organization name.');
+      return;
+    }
+    try {
+      await createOrganization(name);
+      setNewOrganizationName('');
+    } catch {
+      setOrganizationError('Could not create organization. Please try again.');
+    }
   };
 
   const handleRenameLanguageSubmit = (oldName) => {
@@ -108,8 +131,72 @@ export default function AdminSettings() {
         </div>
         <div className="min-w-0">
           <h2 className="text-[1.55rem] sm:text-xl font-bold text-white leading-tight">Developer Console</h2>
-          <p className="text-sm sm:text-xs text-gray-500">Manage admin privileges, language tags, and global categories</p>
+          <p className="text-sm sm:text-xs text-gray-500">Manage organization admins, language tags, and categories</p>
         </div>
+      </div>
+
+      {/* Organization Management */}
+      <div className="w-full p-4 sm:p-5 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4 overflow-hidden">
+        <div>
+          <h3 className="flex items-center gap-2 text-[15px] sm:text-sm font-semibold text-white sm:uppercase sm:tracking-wider">
+            <Building2 className="w-4 h-4 text-violet-400" /> Organization
+          </h3>
+          <p className="text-sm sm:text-xs text-gray-400 mt-1">
+            Songs, admins, categories, and languages are scoped to the selected organization.
+          </p>
+        </div>
+
+        {organizations.length > 0 && (
+          <div className="space-y-3">
+            <select
+              value={activeOrganizationId}
+              onChange={(event) => switchOrganization(event.target.value)}
+              className="w-full rounded-2xl border border-[#1f212d] bg-gray-950 px-4 py-3 text-sm font-semibold text-white outline-none focus:border-violet-500"
+            >
+              {organizations.map((organization) => (
+                <option key={organization.id} value={organization.id}>
+                  {organization.name}
+                </option>
+              ))}
+            </select>
+
+            {activeOrganization && (
+              <div className="grid gap-2 text-sm text-gray-300 sm:grid-cols-3">
+                <div className="rounded-2xl border border-[#1f212d] bg-gray-900/30 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Owner</p>
+                  <p className="mt-1 break-words font-semibold">{activeOrganization.owner_email}</p>
+                </div>
+                <div className="rounded-2xl border border-[#1f212d] bg-gray-900/30 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Songs</p>
+                  <p className="mt-1 font-semibold">{activeOrganization.song_count}</p>
+                </div>
+                <div className="rounded-2xl border border-[#1f212d] bg-gray-900/30 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Admins</p>
+                  <p className="mt-1 font-semibold">{adminEmails.length}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <form onSubmit={handleCreateOrganization} className="space-y-2">
+          <div className="grid gap-2 sm:flex sm:flex-row">
+            <input
+              type="text"
+              placeholder="Create another organization"
+              value={newOrganizationName}
+              onChange={(e) => { setNewOrganizationName(e.target.value); setOrganizationError(''); }}
+              className="flex-1 px-4 py-3 bg-gray-950 border border-[#1f212d] focus:border-violet-500 rounded-2xl text-sm placeholder-gray-600 focus:outline-none transition-colors"
+            />
+            <button
+              type="submit"
+              className="flex min-h-11 items-center justify-center gap-1.5 rounded-2xl bg-violet-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-violet-500 sm:shrink-0 sm:text-xs"
+            >
+              <Plus className="w-3.5 h-3.5" /> Create Org
+            </button>
+          </div>
+          {organizationError && <p className="text-sm font-semibold text-red-400">{organizationError}</p>}
+        </form>
       </div>
 
       {/* Admin Email Management */}
@@ -128,7 +215,7 @@ export default function AdminSettings() {
           {adminEmails.map((email) => (
             <RowShell key={email}>
               <span className="min-w-0 break-words text-sm font-medium leading-snug text-gray-200">{email}</span>
-              {email !== 'allen@example.com' ? (
+            {email !== 'allen8106.dev@gmail.com' ? (
                 <button
                   onClick={() => removeAdminEmail(email)}
                   className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-gray-800/60 px-4 text-sm font-semibold text-gray-200 transition-colors hover:bg-red-950/20 hover:text-red-300 sm:min-h-0 sm:w-fit sm:px-3 sm:py-1.5 sm:text-gray-500 sm:hover:bg-red-950/20 sm:justify-self-end"

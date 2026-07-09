@@ -1,15 +1,30 @@
 import { useState, useRef, useEffect } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
-import { LogOut, ChevronDown, User } from 'lucide-react';
+import { LogOut, ChevronDown, User, Plus } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 
 export default function AuthDropdown() {
-  const { currentUser, handleGoogleLogin, handleLogout } = useSongbook();
+  const { currentUser, organizations, activeOrganizationId, switchOrganization, createOrganization, handleGoogleLogin, handleLogout } = useSongbook();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState('');
+  const [newOrganizationName, setNewOrganizationName] = useState('');
+  const [organizationError, setOrganizationError] = useState('');
   const ref = useRef(null);
 
   const isSignedIn = !!currentUser.email;
+
+  const handleCreateOrganization = async (event) => {
+    event.preventDefault();
+    setOrganizationError('');
+    const name = newOrganizationName.trim();
+    if (!name) return;
+    try {
+      await createOrganization(name);
+      setNewOrganizationName('');
+    } catch {
+      setOrganizationError('Could not create organization.');
+    }
+  };
 
   // Close on outside click
   useEffect(() => {
@@ -66,6 +81,46 @@ export default function AuthDropdown() {
                     </span>
                   </div>
                 </div>
+              </div>
+
+              {/* Switch account */}
+              <div className="px-4 py-3 border-b border-[#1f212d] space-y-3">
+                <div>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Organization</p>
+                  {organizations.length > 0 ? (
+                    <select
+                      value={activeOrganizationId}
+                      onChange={(event) => switchOrganization(event.target.value)}
+                      className="w-full rounded-xl border border-[#1f212d] bg-gray-950 px-3 py-2 text-xs font-semibold text-gray-200 outline-none focus:border-violet-500"
+                    >
+                      {organizations.map((organization) => (
+                        <option key={organization.id} value={organization.id}>
+                          {organization.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-xs text-gray-500">Create an organization to start a private songbook.</p>
+                  )}
+                </div>
+                <form onSubmit={handleCreateOrganization} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newOrganizationName}
+                    onChange={(event) => { setNewOrganizationName(event.target.value); setOrganizationError(''); }}
+                    placeholder="New organization"
+                    className="min-w-0 flex-1 rounded-xl border border-[#1f212d] bg-gray-950 px-3 py-2 text-xs text-white placeholder-gray-600 outline-none focus:border-violet-500"
+                  />
+                  <button
+                    type="submit"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-violet-600 text-white hover:bg-violet-500"
+                    aria-label="Create organization"
+                    title="Create organization"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </form>
+                {organizationError && <p className="text-[10px] text-red-400">{organizationError}</p>}
               </div>
 
               {/* Switch account */}

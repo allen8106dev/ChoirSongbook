@@ -54,7 +54,7 @@ def run_tests():
     # --- 2. Auth Simulation ---
     print("\n2. Testing authentication simulation...")
     # Test developer login
-    dev_email = "allen@example.com"
+    dev_email = "allen8106.dev@gmail.com"
     response = client.post("/api/auth/simulate", json={"email": dev_email})
     assert response.status_code == 200
     dev_token = response.json()["access_token"]

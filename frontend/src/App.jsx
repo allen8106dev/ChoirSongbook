@@ -51,11 +51,11 @@ function AppRoutes() {
           } 
         />
         
-        {/* Developer Only Routes */}
+        {/* Organization Admin Routes */}
         <Route 
           path="/admin/settings" 
           element={
-            <ProtectedRoute allowedRoles={['developer']}>
+            <ProtectedRoute allowedRoles={['admin', 'developer']}>
               <AdminSettings />
             </ProtectedRoute>
           } 

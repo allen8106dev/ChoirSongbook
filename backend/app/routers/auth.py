@@ -38,7 +38,8 @@ def login_google(payload: schemas.GoogleLoginRequest, db: Session = Depends(get_
         "user": {
             "email": email,
             "role": role,
-            "name": name
+            "name": name,
+            "organizations": auth.get_user_organization_payloads(email, db)
         }
     }
 
@@ -63,6 +64,7 @@ def login_simulate(payload: schemas.SimulateLoginRequest, db: Session = Depends(
         "user": {
             "email": email,
             "role": role,
-            "name": name
+            "name": name,
+            "organizations": auth.get_user_organization_payloads(email, db)
         }
     }

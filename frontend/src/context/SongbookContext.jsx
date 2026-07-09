@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useMemo } from 'react';
+import { createContext, useContext, useState, useMemo, useEffect } from 'react';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService, API_BASE_URL } from '../services/api';
@@ -16,13 +16,16 @@ export const SongbookProvider = ({ children }) => {
     const saved = localStorage.getItem('cs_user');
     return saved ? JSON.parse(saved) : { email: '', role: 'viewer', name: 'Guest' };
   });
+  const [activeOrganizationId, setActiveOrganizationId] = useState(() => {
+    return localStorage.getItem('cs_active_org_id') || '';
+  });
 
   // Restore JWT session token from storage on load (if exists)
   // No auto-simulation — only real Google sign-in sets a token
 
   // Favourites — fetched from DB (syncs across devices), requires auth token
   const { data: favourites = [] } = useQuery({
-    queryKey: ['favourites', currentUser.email],
+    queryKey: ['favourites', currentUser.email, activeOrganizationId],
     queryFn: apiService.favourites.getAll,
     enabled: !!currentUser.email, // only fetch when signed in
     staleTime: 30_000,
@@ -38,18 +41,18 @@ export const SongbookProvider = ({ children }) => {
     },
     // Optimistic update — instant UI feedback
     onMutate: async (songId) => {
-      await queryClient.cancelQueries({ queryKey: ['favourites', currentUser.email] });
-      const previous = queryClient.getQueryData(['favourites', currentUser.email]) ?? [];
-      queryClient.setQueryData(['favourites', currentUser.email], (old = []) =>
+      await queryClient.cancelQueries({ queryKey: ['favourites', currentUser.email, activeOrganizationId] });
+      const previous = queryClient.getQueryData(['favourites', currentUser.email, activeOrganizationId]) ?? [];
+      queryClient.setQueryData(['favourites', currentUser.email, activeOrganizationId], (old = []) =>
         old.includes(songId) ? old.filter(id => id !== songId) : [...old, songId]
       );
       return { previous };
     },
     onError: (_err, _songId, context) => {
-      queryClient.setQueryData(['favourites', currentUser.email], context.previous);
+      queryClient.setQueryData(['favourites', currentUser.email, activeOrganizationId], context.previous);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['favourites', currentUser.email] });
+      queryClient.invalidateQueries({ queryKey: ['favourites', currentUser.email, activeOrganizationId] });
     },
   });
 
@@ -61,10 +64,35 @@ export const SongbookProvider = ({ children }) => {
   const isFavourite = (songId) => favourites.includes(songId);
 
   // --- React Query Data Fetching Queries ---
+  const { data: organizations = [] } = useQuery({
+    queryKey: ['organizations', currentUser.email],
+    queryFn: apiService.organizations.getAll,
+    enabled: !!currentUser.email,
+  });
+
+  useEffect(() => {
+    if (!organizations.length) return;
+    const savedOrgStillAvailable = organizations.some(org => org.id === activeOrganizationId);
+    const nextOrgId = savedOrgStillAvailable ? activeOrganizationId : organizations[0].id;
+    if (nextOrgId !== activeOrganizationId) {
+      localStorage.setItem('cs_active_org_id', nextOrgId);
+      window.setTimeout(() => setActiveOrganizationId(nextOrgId), 0);
+    }
+  }, [organizations, activeOrganizationId]);
+
+  const activeOrganization = useMemo(() => {
+    return organizations.find(org => org.id === activeOrganizationId) || organizations[0] || null;
+  }, [organizations, activeOrganizationId]);
+
+  const switchOrganization = (organizationId) => {
+    localStorage.setItem('cs_active_org_id', organizationId);
+    setActiveOrganizationId(organizationId);
+    queryClient.invalidateQueries();
+  };
   
   // Songs query
   const { data: songs = [], isLoading: isSongsLoading } = useQuery({
-    queryKey: ['songs'],
+    queryKey: ['songs', activeOrganizationId],
     queryFn: async () => {
       const data = await apiService.songs.getAll();
       const backendBase = API_BASE_URL.replace('/api', '');
@@ -83,21 +111,21 @@ export const SongbookProvider = ({ children }) => {
 
   // Categories query
   const { data: categoriesData = [] } = useQuery({
-    queryKey: ['categories'],
+    queryKey: ['categories', activeOrganizationId],
     queryFn: apiService.categories.getAll,
   });
 
   // Languages query
   const { data: languagesData = [] } = useQuery({
-    queryKey: ['languages'],
+    queryKey: ['languages', activeOrganizationId],
     queryFn: apiService.languages.getAll,
   });
 
   // Admin emails list (only query if user has developer level permission)
   const { data: adminEmailsData = [] } = useQuery({
-    queryKey: ['adminEmails'],
+    queryKey: ['adminEmails', activeOrganizationId],
     queryFn: apiService.admin.getEmails,
-    enabled: currentUser.role === 'developer',
+    enabled: currentUser.role === 'developer' || currentUser.role === 'admin',
   });
 
   // Map API response category and language items to string lists for frontend components compatibility
@@ -124,6 +152,11 @@ export const SongbookProvider = ({ children }) => {
       localStorage.setItem('cs_auth_token', data.access_token);
       localStorage.setItem('cs_user', JSON.stringify(data.user));
       setCurrentUser(data.user);
+      const firstOrgId = data.user.organizations?.[0]?.id || '';
+      if (firstOrgId) {
+        localStorage.setItem('cs_active_org_id', firstOrgId);
+        setActiveOrganizationId(firstOrgId);
+      }
       queryClient.invalidateQueries();
       return data.user;
     } catch (e) {
@@ -135,8 +168,10 @@ export const SongbookProvider = ({ children }) => {
   const handleLogout = () => {
     localStorage.removeItem('cs_auth_token');
     localStorage.removeItem('cs_user');
+    localStorage.removeItem('cs_active_org_id');
     const guestUser = { email: '', role: 'viewer', name: 'Guest' };
     setCurrentUser(guestUser);
+    setActiveOrganizationId('');
     queryClient.clear();
     queryClient.invalidateQueries();
   };
@@ -154,6 +189,7 @@ export const SongbookProvider = ({ children }) => {
       queryClient.invalidateQueries({ queryKey: ['songs'] });
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       queryClient.invalidateQueries({ queryKey: ['languages'] });
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
     }
   });
 
@@ -169,6 +205,7 @@ export const SongbookProvider = ({ children }) => {
       queryClient.invalidateQueries({ queryKey: ['songs'] });
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       queryClient.invalidateQueries({ queryKey: ['languages'] });
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
     }
   });
 
@@ -178,6 +215,7 @@ export const SongbookProvider = ({ children }) => {
       queryClient.invalidateQueries({ queryKey: ['songs'] });
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       queryClient.invalidateQueries({ queryKey: ['languages'] });
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
     }
   });
 
@@ -194,6 +232,7 @@ export const SongbookProvider = ({ children }) => {
     mutationFn: (email) => apiService.admin.addEmail(email),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminEmails'] });
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
     }
   });
 
@@ -201,6 +240,28 @@ export const SongbookProvider = ({ children }) => {
     mutationFn: (email) => apiService.admin.deleteEmail(email),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminEmails'] });
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
+    }
+  });
+
+  const createOrganizationMutation = useMutation({
+    mutationFn: (name) => apiService.organizations.create(name),
+    onSuccess: (organization) => {
+      localStorage.setItem('cs_active_org_id', organization.id);
+      setActiveOrganizationId(organization.id);
+      setCurrentUser((user) => {
+        const nextUser = {
+          ...user,
+          role: user.role === 'developer' ? 'developer' : 'admin',
+          organizations: [...(user.organizations || []).filter(org => org.id !== organization.id), organization],
+        };
+        localStorage.setItem('cs_user', JSON.stringify(nextUser));
+        return nextUser;
+      });
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
+      queryClient.invalidateQueries({ queryKey: ['songs'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['languages'] });
     }
   });
 
@@ -243,6 +304,7 @@ export const SongbookProvider = ({ children }) => {
   const updateSong = (id, songData) => updateSongMutation.mutateAsync({ id, songData });
   const deleteSong = (id) => deleteSongMutation.mutateAsync(id);
   const uploadSongAudio = (id, file) => uploadSongAudioMutation.mutateAsync({ id, file });
+  const createOrganization = (name) => createOrganizationMutation.mutateAsync(name);
   
   const addAdminEmail = (email) => addAdminEmailMutation.mutate(email);
   const removeAdminEmail = (email) => removeAdminEmailMutation.mutate(email);
@@ -260,6 +322,9 @@ export const SongbookProvider = ({ children }) => {
         languages,
         categories,
         currentUser,
+        organizations,
+        activeOrganization,
+        activeOrganizationId,
         adminEmails,
         isLoading,
         favourites,
@@ -267,6 +332,8 @@ export const SongbookProvider = ({ children }) => {
         isFavourite,
         handleGoogleLogin,
         handleLogout,
+        switchOrganization,
+        createOrganization,
         addSong,
         updateSong,
         deleteSong,

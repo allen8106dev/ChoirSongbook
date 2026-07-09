@@ -2,6 +2,31 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, EmailStr, model_validator
 from typing import Optional, List
 
+# --- Organization Schemas ---
+class OrganizationBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+
+class OrganizationCreate(OrganizationBase):
+    pass
+
+class OrganizationAdminCreate(BaseModel):
+    email: EmailStr
+
+class OrganizationAdminResponse(BaseModel):
+    email: str
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class OrganizationResponse(OrganizationBase):
+    id: str
+    owner_email: str
+    created_at: datetime
+    admins: List[OrganizationAdminResponse] = []
+    song_count: int = 0
+    
+    model_config = ConfigDict(from_attributes=True)
+
 # --- Category Schemas ---
 class CategoryBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
@@ -47,6 +72,7 @@ class SongUpdate(BaseModel):
 
 class SongResponse(SongBase):
     id: str
+    organization_id: str
     number: int
     categories: List[str] = []
     languages: List[str] = []
@@ -72,6 +98,7 @@ class SongResponse(SongBase):
                 
             return {
                 "id": data.id,
+                "organization_id": data.organization_id,
                 "number": data.number,
                 "title": data.title,
                 "lyrics": data.lyrics,
@@ -105,6 +132,7 @@ class UserResponse(BaseModel):
     email: str
     role: str
     name: Optional[str] = None
+    organizations: List[OrganizationResponse] = []
 
 class TokenResponse(BaseModel):
     access_token: str

@@ -2,10 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
+from sqlalchemy import inspect, text
 
 from app.config import settings
 from app.database import engine, Base, SessionLocal
-from app.routers import auth, songs, categories, languages, admin, favourites
+from app.routers import auth, songs, categories, languages, admin, favourites, organizations
 from app import models, crud, schemas
 
 # Initialize database tables on startup (especially for SQLite local)
@@ -60,6 +61,7 @@ app.include_router(categories.router, prefix=settings.API_V1_STR)
 app.include_router(languages.router, prefix=settings.API_V1_STR)
 app.include_router(admin.router, prefix=settings.API_V1_STR)
 app.include_router(favourites.router, prefix=settings.API_V1_STR)
+app.include_router(organizations.router, prefix=settings.API_V1_STR)
 
 # Serve local uploads statically
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
@@ -73,11 +75,58 @@ def health_check():
         "database": "connected"
     }
 
+def ensure_organization_migration():
+    """
+    Idempotently moves the legacy single songbook into the default church organization.
+    Existing rows are updated in place; no songs/admins/tags are deleted.
+    """
+    db = SessionLocal()
+    try:
+        default_org = crud.get_or_create_default_organization(db)
+        default_org_id = default_org.id
+    finally:
+        db.close()
+
+    inspector = inspect(engine)
+    with engine.begin() as conn:
+        for table_name in ["songs", "categories", "languages"]:
+            if table_name not in inspector.get_table_names():
+                continue
+            columns = {column["name"] for column in inspector.get_columns(table_name)}
+            if "organization_id" not in columns:
+                conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN organization_id VARCHAR(36)"))
+            conn.execute(
+                text(f"UPDATE {table_name} SET organization_id = :org_id WHERE organization_id IS NULL OR organization_id = ''"),
+                {"org_id": default_org_id}
+            )
+
+    db = SessionLocal()
+    try:
+        legacy_admins = db.query(models.AdminEmail).all()
+        for legacy_admin in legacy_admins:
+            crud.add_admin_email(db, legacy_admin.email, default_org_id)
+
+        for song in db.query(models.Song).filter(models.Song.organization_id == default_org_id).all():
+            for category in song.categories:
+                if not category.organization_id:
+                    category.organization_id = default_org_id
+            for language in song.languages:
+                if not language.organization_id:
+                    language.organization_id = default_org_id
+        db.commit()
+        crud.recalculate_song_numbers(db, default_org_id)
+    except Exception as e:
+        db.rollback()
+        print(f"Warning: Could not complete organization migration: {e}")
+    finally:
+        db.close()
+
 # Seeding default data on application startup if database is empty
 @app.on_event("startup")
 def seed_data():
     try:
         Base.metadata.create_all(bind=engine)
+        ensure_organization_migration()
     except Exception as e:
         print(f"Warning: Could not create tables on startup (migrations may already be applied): {e}")
 
@@ -88,20 +137,21 @@ def seed_data():
         song_count = db.query(models.Song).count()
         if song_count == 0:
             print("Database is empty. Seeding default categories, languages, admin emails, and songs...")
+            default_org = crud.get_or_create_default_organization(db)
             
             # 1. Seed admin emails
             default_admins = ['admin@choir.org', 'director@choir.org']
             for email in default_admins:
-                crud.add_admin_email(db, email)
+                crud.add_admin_email(db, email, default_org.id)
                 
             # 2. Seed default categories & languages
             categories_list = ['Worship', 'Praise', 'Christmas', 'Adoration', 'Communion', 'Youth', 'Marriage']
             languages_list = ['English', 'Malayalam', 'Hindi', 'Tamil', 'Spanish']
             
             for c in categories_list:
-                crud.get_or_create_category(db, c)
+                crud.get_or_create_category(db, c, default_org.id)
             for l in languages_list:
-                crud.get_or_create_language(db, l)
+                crud.get_or_create_language(db, l, default_org.id)
                 
             # 3. Seed initial songs
             initial_songs_data = [
@@ -148,7 +198,7 @@ def seed_data():
             ]
             
             for song_data in initial_songs_data:
-                crud.create_song(db, song_data)
+                crud.create_song(db, song_data, default_org.id)
                 
             print("Database seeding completed successfully.")
     except Exception as e:

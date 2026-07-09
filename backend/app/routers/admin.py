@@ -4,26 +4,26 @@ from typing import List
 from app import schemas, crud, auth
 from app.database import get_db
 
-router = APIRouter(prefix="/admin", tags=["Developer Admin Management"])
+router = APIRouter(prefix="/admin", tags=["Organization Admin Management"])
 
 @router.get("/emails", response_model=List[schemas.AdminEmailResponse])
 def read_admin_emails(
     db: Session = Depends(get_db),
-    current_user: dict = Depends(auth.require_developer)
+    current_user: dict = Depends(auth.require_org_admin)
 ):
     """
-    Get all approved admin emails (restricted to Developer).
+    Get all approved admin emails for the active organization.
     """
-    return crud.get_admin_emails(db)
+    return crud.get_admin_emails(db, current_user["organization_id"])
 
 @router.post("/emails", response_model=schemas.AdminEmailResponse, status_code=status.HTTP_201_CREATED)
 def create_admin_email(
     admin_in: schemas.AdminEmailCreate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(auth.require_developer)
+    current_user: dict = Depends(auth.require_org_admin)
 ):
     """
-    Approve a new admin email (restricted to Developer).
+    Approve a new admin email for the active organization.
     """
     email_clean = admin_in.email.strip().lower()
     
@@ -34,16 +34,16 @@ def create_admin_email(
             detail="The primary developer email is approved by default."
         )
         
-    return crud.add_admin_email(db, email_clean)
+    return crud.add_admin_email(db, email_clean, current_user["organization_id"])
 
 @router.delete("/emails/{email}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_admin_email(
     email: str,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(auth.require_developer)
+    current_user: dict = Depends(auth.require_org_admin)
 ):
     """
-    Revoke admin privileges for an email (restricted to Developer).
+    Revoke admin privileges for the active organization.
     """
     email_clean = email.strip().lower()
     
@@ -53,7 +53,7 @@ def delete_admin_email(
             detail="Cannot revoke privileges for the primary developer email."
         )
         
-    success = crud.remove_admin_email(db, email_clean)
+    success = crud.remove_admin_email(db, email_clean, current_user["organization_id"])
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

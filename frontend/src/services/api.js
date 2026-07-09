@@ -19,6 +19,10 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    const organizationId = localStorage.getItem('cs_active_org_id');
+    if (organizationId) {
+      config.headers['X-Organization-ID'] = organizationId;
+    }
     return config;
   },
   (error) => {
@@ -35,6 +39,18 @@ export const apiService = {
     },
     loginSimulate: async (email) => {
       const response = await api.post('/auth/simulate', { email });
+      return response.data;
+    },
+  },
+
+  // --- Organizations ---
+  organizations: {
+    getAll: async () => {
+      const response = await api.get('/organizations');
+      return response.data;
+    },
+    create: async (name) => {
+      const response = await api.post('/organizations', { name });
       return response.data;
     },
   },

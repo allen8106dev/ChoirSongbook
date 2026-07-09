@@ -1,11 +1,11 @@
 import { useLayoutEffect } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
-import { Music, PlusCircle, Settings, Star, BookOpen } from 'lucide-react';
+import { Music, PlusCircle, Settings, Star, BookOpen, Building2 } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 import AuthDropdown from './AuthDropdown';
 
 export default function Layout({ children }) {
-  const { currentUser } = useSongbook();
+  const { currentUser, organizations, activeOrganizationId, switchOrganization, activeOrganization } = useSongbook();
   const location = useLocation();
 
   useLayoutEffect(() => {
@@ -14,14 +14,13 @@ export default function Layout({ children }) {
 
   const isAtLeastAdmin =
     currentUser.role === 'admin' || currentUser.role === 'developer';
-  const isDeveloper = currentUser.role === 'developer';
 
   const navItems = [
     { to: '/', label: 'Songbook', icon: BookOpen, exact: true },
     ...(isAtLeastAdmin
       ? [{ to: '/admin/add', label: 'Add Song', icon: PlusCircle }]
       : []),
-    ...(isDeveloper
+    ...(isAtLeastAdmin
       ? [{ to: '/admin/settings', label: 'Console', icon: Settings }]
       : []),
     { to: '/profile', label: 'Favourites', icon: Star }
@@ -50,6 +49,24 @@ export default function Layout({ children }) {
 
           <AuthDropdown />
         </div>
+        {organizations.length > 0 && (
+          <div className="border-b border-[#1f212d] px-4 py-3">
+            <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-500">
+              <Building2 className="h-3 w-3" /> Organization
+            </label>
+            <select
+              value={activeOrganizationId}
+              onChange={(event) => switchOrganization(event.target.value)}
+              className="w-full rounded-xl border border-[#1f212d] bg-[#0b0c10] px-3 py-2 text-xs font-semibold text-gray-200 outline-none focus:border-violet-500"
+            >
+              {organizations.map((organization) => (
+                <option key={organization.id} value={organization.id}>
+                  {organization.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <nav className="flex-1 px-4 py-5 space-y-1">
           {navItems.map((item) => (
@@ -87,7 +104,14 @@ export default function Layout({ children }) {
             </span>
           </Link>
 
-          <AuthDropdown />
+          <div className="flex items-center gap-2">
+            {activeOrganization && (
+              <span className="max-w-[9rem] truncate text-xs font-semibold text-gray-400">
+                {activeOrganization.name}
+              </span>
+            )}
+            <AuthDropdown />
+          </div>
         </header>
 
         <main className="flex-1 p-3 sm:p-5 md:p-10 max-w-4xl mx-auto w-full">

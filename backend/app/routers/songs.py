@@ -10,11 +10,14 @@ from app.pdf_generator import generate_songbook_pdf
 router = APIRouter(prefix="/songs", tags=["Songs"])
 
 @router.get("", response_model=List[schemas.SongResponse])
-def read_songs(db: Session = Depends(get_db)):
+def read_songs(
+    db: Session = Depends(get_db),
+    organization = Depends(auth.get_active_organization)
+):
     """
     Get all songs in the songbook (auto-sorted alphabetically and numbered).
     """
-    return crud.get_songs(db)
+    return crud.get_songs(db, organization.id)
 
 @router.get("/pdf", response_class=StreamingResponse)
 def export_songbook_pdf(
@@ -22,7 +25,8 @@ def export_songbook_pdf(
     categories: List[str] = Query(None),
     languages: List[str] = Query(None),
     filter_mode: str = Query("any"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    organization = Depends(auth.get_active_organization)
 ):
     """
     Export the songbook as a professionally styled printable PDF (context-aware of search/category/language filters).
@@ -33,7 +37,7 @@ def export_songbook_pdf(
             detail="filter_mode must be either 'any' or 'all'."
         )
 
-    songs = crud.get_songs(db)
+    songs = crud.get_songs(db, organization.id)
 
     def matches_selected_values(selected_values: List[str], song_values: List[str]) -> bool:
         if not selected_values:
@@ -84,16 +88,20 @@ def export_songbook_pdf(
 
 
 @router.get("/{id_or_number}", response_model=schemas.SongResponse)
-def read_song(id_or_number: str, db: Session = Depends(get_db)):
+def read_song(
+    id_or_number: str,
+    db: Session = Depends(get_db),
+    organization = Depends(auth.get_active_organization)
+):
 
     """
     Retrieve a song by its unique UUID ID or its sequential alphabetical song number.
     """
     song = None
     if id_or_number.isdigit():
-        song = crud.get_song_by_number(db, int(id_or_number))
+        song = crud.get_song_by_number(db, int(id_or_number), organization.id)
     else:
-        song = crud.get_song(db, id_or_number)
+        song = crud.get_song(db, id_or_number, organization.id)
         
     if not song:
         raise HTTPException(
@@ -106,26 +114,26 @@ def read_song(id_or_number: str, db: Session = Depends(get_db)):
 def create_song(
     song_in: schemas.SongCreate, 
     db: Session = Depends(get_db),
-    current_user: dict = Depends(auth.require_admin)
+    current_user: dict = Depends(auth.require_org_admin)
 ):
     """
     Add a new song to the songbook (restricted to Admin/Developer).
     Automatically recalculates all song numbers alphabetically.
     """
-    return crud.create_song(db, song_in)
+    return crud.create_song(db, song_in, current_user["organization_id"])
 
 @router.put("/{id}", response_model=schemas.SongResponse)
 def update_song(
     id: str,
     song_in: schemas.SongUpdate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(auth.require_admin)
+    current_user: dict = Depends(auth.require_org_admin)
 ):
     """
     Update an existing song (restricted to Admin/Developer).
     Automatically recalculates all song numbers alphabetically if the title changes.
     """
-    db_song = crud.get_song(db, id)
+    db_song = crud.get_song(db, id, current_user["organization_id"])
     if not db_song:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -138,13 +146,13 @@ def update_song(
 def delete_song(
     id: str,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(auth.require_admin)
+    current_user: dict = Depends(auth.require_org_admin)
 ):
     """
     Delete a song from the songbook (restricted to Admin/Developer).
     Automatically recalculates all song numbers alphabetically.
     """
-    success = crud.delete_song(db, id)
+    success = crud.delete_song(db, id, current_user["organization_id"])
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -157,13 +165,13 @@ def upload_song_audio(
     id: str,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: dict = Depends(auth.require_admin)
+    current_user: dict = Depends(auth.require_org_admin)
 ):
     """
     Upload reference audio MP3 for a song (restricted to Admin/Developer).
     Cleans up old reference file if present.
     """
-    db_song = crud.get_song(db, id)
+    db_song = crud.get_song(db, id, current_user["organization_id"])
     if not db_song:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -190,4 +198,3 @@ def upload_song_audio(
     # Update song database record
     update_schema = schemas.SongUpdate(audio_url=audio_path)
     return crud.update_song(db, db_song, update_schema)
-

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
-from typing import Optional, Dict
-from fastapi import Depends, HTTPException, status
+from typing import Optional, Dict, List
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -10,6 +10,7 @@ from google.auth.transport import requests as google_requests
 from app.config import settings
 from app.database import get_db
 from app import models
+from app import crud
 
 # Use standard OAuth2 Bearer token scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login", auto_error=False)
@@ -57,8 +58,8 @@ def resolve_user_role(email: str, db: Session) -> str:
     if email_clean == settings.DEVELOPER_EMAIL.strip().lower():
         return "developer"
         
-    # Query admin_emails database table
-    db_admin = db.query(models.AdminEmail).filter(models.AdminEmail.email == email_clean).first()
+    # Query organization admin memberships
+    db_admin = db.query(models.OrganizationAdmin).filter(models.OrganizationAdmin.email == email_clean).first()
     if db_admin:
         return "admin"
         
@@ -91,6 +92,26 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     
     return {"email": email, "role": role, "name": email.split("@")[0].capitalize()}
 
+def is_developer(email: str) -> bool:
+    return email.strip().lower() == settings.DEVELOPER_EMAIL.strip().lower()
+
+def serialize_organization(db: Session, organization: models.Organization) -> Dict:
+    return {
+        "id": organization.id,
+        "name": organization.name,
+        "owner_email": organization.owner_email,
+        "created_at": organization.created_at,
+        "admins": crud.get_org_admins(db, organization.id),
+        "song_count": db.query(models.Song).filter(models.Song.organization_id == organization.id).count(),
+    }
+
+def get_user_organization_payloads(email: str, db: Session) -> List[Dict]:
+    if is_developer(email):
+        organizations = crud.get_all_organizations(db)
+    else:
+        organizations = crud.get_user_organizations(db, email)
+    return [serialize_organization(db, org) for org in organizations]
+
 def require_admin(current_user: Dict = Depends(get_current_user)) -> Dict:
     """
     Enforces that the authenticated user is at least an Admin (Admin or Developer).
@@ -101,6 +122,41 @@ def require_admin(current_user: Dict = Depends(get_current_user)) -> Dict:
             detail="Operation restricted to Admin or Developer accounts."
         )
     return current_user
+
+def get_active_organization(
+    x_organization_id: Optional[str] = Header(default=None, alias="X-Organization-ID"),
+    db: Session = Depends(get_db)
+) -> models.Organization:
+    """
+    Resolve the organization for this request.
+    Missing header falls back to the migrated default church organization for compatibility.
+    """
+    if x_organization_id:
+        organization = crud.get_organization(db, x_organization_id)
+    else:
+        organization = crud.get_or_create_default_organization(db)
+        
+    if not organization:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found."
+        )
+    return organization
+
+def require_org_admin(
+    current_user: Dict = Depends(get_current_user),
+    organization: models.Organization = Depends(get_active_organization),
+    db: Session = Depends(get_db)
+) -> Dict:
+    """
+    Enforces admin access for the active organization. Developers bypass membership.
+    """
+    if current_user["role"] == "developer" or crud.is_org_admin(db, current_user["email"], organization.id):
+        return {**current_user, "organization_id": organization.id}
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Operation restricted to admins for this organization."
+    )
 
 def require_developer(current_user: Dict = Depends(get_current_user)) -> Dict:
     """
