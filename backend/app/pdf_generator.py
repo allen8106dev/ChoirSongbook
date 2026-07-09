@@ -1,6 +1,8 @@
 import io
 import os
+import re
 from datetime import datetime
+from xml.sax.saxutils import escape
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -151,6 +153,23 @@ def _style_for_text(base_style: ParagraphStyle, text: str | None, bold: bool = F
     if font_name == base_style.fontName:
         return base_style
     return ParagraphStyle(f"{base_style.name}-{font_name}", parent=base_style, fontName=font_name)
+
+
+def _parse_lyric_sections(raw_lyrics: str | None) -> list[dict[str, str]]:
+    if not raw_lyrics:
+        return [{"heading": "", "text": ""}]
+
+    parts = re.split(r"\n*===\s*(.+?)\s*===\n*", raw_lyrics)
+    if len(parts) <= 1:
+        return [{"heading": "", "text": raw_lyrics}]
+
+    sections = []
+    for index in range(1, len(parts), 2):
+        sections.append({
+            "heading": parts[index] or "",
+            "text": (parts[index + 1] if index + 1 < len(parts) else "").strip(),
+        })
+    return sections or [{"heading": "", "text": raw_lyrics}]
 
 class NumberedCanvas(canvas.Canvas):
     """
@@ -341,6 +360,17 @@ def generate_songbook_pdf(songs) -> io.BytesIO:
         leading=16.5,
         textColor=colors.HexColor("#1f2937") # Gray-700
     )
+
+    lyric_section_heading_style = ParagraphStyle(
+        'LyricSectionHeading',
+        parent=styles['Normal'],
+        fontName=PDF_FONT_BOLD,
+        fontSize=9,
+        leading=11,
+        textColor=colors.HexColor("#7c3aed"),
+        spaceBefore=10,
+        spaceAfter=4
+    )
     
     song_trans_style = ParagraphStyle(
         'SongTrans',
@@ -421,7 +451,6 @@ def generate_songbook_pdf(songs) -> io.BytesIO:
             meta_label = " | ".join(meta_tokens).upper()
             title_style = _style_for_text(song_title_style, song.title, bold=True)
             meta_style = _style_for_text(song_meta_style, meta_label, bold=True)
-            lyrics_style = _style_for_text(song_lyrics_style, song.lyrics)
             
             # Song Label
             story.append(Paragraph(f"SONG {song.number}", song_number_style))
@@ -435,8 +464,18 @@ def generate_songbook_pdf(songs) -> io.BytesIO:
             story.append(Paragraph(meta_label, meta_style))
             
             # Song Lyrics
-            lyrics_html = song.lyrics.replace("\n", "<br/>")
-            story.append(Paragraph(lyrics_html, lyrics_style))
+            for section_index, section in enumerate(_parse_lyric_sections(song.lyrics)):
+                heading = section["heading"].strip()
+                if heading:
+                    heading_style = _style_for_text(lyric_section_heading_style, heading, bold=True)
+                    story.append(Paragraph(escape(heading).upper(), heading_style))
+                elif section_index > 0:
+                    story.append(Spacer(1, 8))
+
+                lines = section["text"].splitlines()
+                for line in lines:
+                    line_style = _style_for_text(song_lyrics_style, line)
+                    story.append(Paragraph(escape(line) or "&nbsp;", line_style))
             
             # Transliteration text if present
             if song.transliteration:
