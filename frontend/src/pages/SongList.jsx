@@ -94,155 +94,18 @@ function SongInfoPopover({ song, buttonClassName = '' }) {
   );
 }
 
-// ─── PDF Export Modal ────────────────────────────────────────────────────────
-function PdfExportModal({ isOpen, onClose, languages, categories, initialSearch, initialLanguages, initialCategories, initialFilterMode }) {
-  const [search, setSearch] = useState(initialSearch);
-  const [selLangs, setSelLangs] = useState(initialLanguages);
-  const [selCats, setSelCats] = useState(initialCategories);
-  const [filterMode, setFilterMode] = useState(initialFilterMode);
+// ─── PDF Export ──────────────────────────────────────────────────────────────
+function buildPdfExportUrl(search, languages, categories, filterMode) {
+  const params = new URLSearchParams();
+  const query = search.trim();
 
-  useEffect(() => {
-    if (isOpen) {
-      // Keep the export dialog aligned with the active filters when it opens.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSearch(initialSearch);
-      setSelLangs(initialLanguages);
-      setSelCats(initialCategories);
-      setFilterMode(initialFilterMode);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  if (query) params.append('search', query);
+  languages.forEach(lang => params.append('languages', lang));
+  categories.forEach(cat => params.append('categories', cat));
+  params.append('filter_mode', filterMode);
 
-  if (!isOpen) return null;
-
-  const toggleLang = (lang) =>
-    setSelLangs(prev => prev.includes(lang) ? prev.filter(l => l !== lang) : [...prev, lang]);
-
-  const toggleCat = (cat) =>
-    setSelCats(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
-
-  const activeCount = selLangs.length + selCats.length + (search ? 1 : 0);
-
-  const handleDownload = () => {
-    const params = new URLSearchParams();
-    if (search) params.append('search', search);
-    selLangs.forEach(l => params.append('languages', l));
-    selCats.forEach(c => params.append('categories', c));
-    params.append('filter_mode', filterMode);
-    const qs = params.toString();
-    window.open(`${API_BASE_URL}/songs/pdf${qs ? '?' + qs : ''}`, '_blank');
-    onClose();
-  };
-
-  return (
-    <>
-      <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-        <div
-          className="pointer-events-auto w-full max-w-lg bg-[#111219] border border-[#1f212d] rounded-3xl shadow-2xl shadow-black/60 flex flex-col overflow-hidden"
-          onClick={e => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between px-6 py-5 border-b border-[#1f212d]">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
-                <FileDown className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h3 className="font-bold text-white text-base leading-tight">Export PDF</h3>
-                <p className="text-xs text-gray-500">
-                  {activeCount === 0 ? 'All songs will be exported' : `${activeCount} filter${activeCount > 1 ? 's' : ''} applied`}
-                </p>
-              </div>
-            </div>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-500 hover:text-white hover:bg-white/10 transition-colors">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="px-6 py-5 space-y-5 overflow-y-auto max-h-[60vh]">
-            <div>
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Search className="w-3 h-3" /> Keyword Search
-              </label>
-              <div className="relative group">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-violet-400 transition-colors" />
-                <input
-                  type="text"
-                  placeholder="Filter by title, lyrics, tags..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-9 py-3 bg-[#0c0d13] border border-[#1f212d] focus:border-violet-500 rounded-xl text-sm placeholder-gray-600 focus:outline-none transition-all"
-                />
-                {search && (
-                  <button onClick={() => setSearch('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Globe className="w-3 h-3" /> Language
-              </label>
-              <div className="flex flex-wrap gap-2">
-                <button onClick={() => setSelLangs([])} className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${selLangs.length === 0 ? 'bg-violet-600 text-white' : 'bg-[#0c0d13] text-gray-400 hover:text-white border border-[#1f212d]'}`}>All</button>
-                {languages.map(lang => (
-                  <button key={lang} onClick={() => toggleLang(lang)} className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${selLangs.includes(lang) ? 'bg-violet-600 text-white' : 'bg-[#0c0d13] text-gray-400 hover:text-white border border-[#1f212d]'}`}>{lang}</button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Tag className="w-3 h-3" /> Category
-              </label>
-              <div className="flex flex-wrap gap-2">
-                <button onClick={() => setSelCats([])} className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${selCats.length === 0 ? 'bg-indigo-600 text-white' : 'bg-[#0c0d13] text-gray-400 hover:text-white border border-[#1f212d]'}`}>All</button>
-                {categories.map(cat => (
-                  <button key={cat} onClick={() => toggleCat(cat)} className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${selCats.includes(cat) ? 'bg-indigo-600 text-white' : 'bg-[#0c0d13] text-gray-400 hover:text-white border border-[#1f212d]'}`}>{cat}</button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <SlidersHorizontal className="w-3 h-3" /> Match Mode
-              </label>
-              <div className="flex rounded-xl border border-[#1f212d] bg-[#0c0d13] p-1">
-                <button
-                  onClick={() => setFilterMode('any')}
-                  className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${filterMode === 'any' ? 'bg-violet-600 text-white' : 'text-gray-400 hover:text-white'}`}
-                >
-                  Any
-                </button>
-                <button
-                  onClick={() => setFilterMode('all')}
-                  className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${filterMode === 'all' ? 'bg-violet-600 text-white' : 'text-gray-400 hover:text-white'}`}
-                >
-                  All
-                </button>
-              </div>
-            </div>
-
-            {activeCount > 0 && (
-              <div className="flex items-center justify-between pt-1">
-                <p className="text-xs text-gray-500">Only matching songs will be included.</p>
-                <button onClick={() => { setSearch(''); setSelLangs([]); setSelCats([]); }} className="text-xs font-bold text-violet-400 hover:text-violet-300 transition-colors shrink-0 ml-3">Clear all</button>
-              </div>
-            )}
-          </div>
-
-          <div className="px-6 py-4 border-t border-[#1f212d] flex items-center justify-end gap-3">
-            <button onClick={onClose} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-400 hover:text-white hover:bg-white/5 transition-all">Cancel</button>
-            <button onClick={handleDownload} className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-violet-500/20 transition-all active:scale-95">
-              <FileDown className="w-4 h-4" /> Download PDF
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
-  );
+  const qs = params.toString();
+  return `${API_BASE_URL}/songs/pdf${qs ? '?' + qs : ''}`;
 }
 
 // ─── Main SongList Component ─────────────────────────────────────────────────
@@ -256,7 +119,6 @@ export default function SongList() {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [filterMode, setFilterMode] = useState('any');
   const [showFilters, setShowFilters] = useState(false);
-  const [showPdfModal, setShowPdfModal] = useState(false);
 
   // Close filter dropdown when clicking outside
   useEffect(() => {
@@ -327,17 +189,6 @@ export default function SongList() {
 
   return (
     <div className="space-y-5">
-      <PdfExportModal
-        isOpen={showPdfModal}
-        onClose={() => setShowPdfModal(false)}
-        languages={languages}
-        categories={categories}
-        initialSearch={searchQuery}
-        initialLanguages={selectedLanguages}
-        initialCategories={selectedCategories}
-        initialFilterMode={filterMode}
-      />
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
@@ -345,7 +196,7 @@ export default function SongList() {
           <p className="text-sm text-gray-400 mt-0.5">Search and browse lyrics and videos</p>
         </div>
         <button
-          onClick={() => setShowPdfModal(true)}
+          onClick={() => window.open(buildPdfExportUrl(searchQuery, selectedLanguages, selectedCategories, filterMode), '_blank')}
           className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md transition-all self-start sm:self-auto cursor-pointer"
         >
           <FileDown className="w-4 h-4" /> Export PDF

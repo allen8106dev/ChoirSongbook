@@ -1,13 +1,63 @@
 import io
+import os
 from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
 # Dictionary to collect page numbers dynamically on the first pass
 song_pages_cache = {}
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+FONT_CANDIDATES = {
+    "regular": [
+        os.getenv("SONGBOOK_PDF_FONT_REGULAR"),
+        os.path.join(BASE_DIR, "fonts", "NotoSansMalayalam-Regular.ttf"),
+        os.path.join(BASE_DIR, "fonts", "NotoSans-Regular.ttf"),
+        r"C:\Windows\Fonts\Nirmala.ttc",
+        "/usr/share/fonts/truetype/noto/NotoSansMalayalam-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    ],
+    "bold": [
+        os.getenv("SONGBOOK_PDF_FONT_BOLD"),
+        os.path.join(BASE_DIR, "fonts", "NotoSansMalayalam-Bold.ttf"),
+        os.path.join(BASE_DIR, "fonts", "NotoSans-Bold.ttf"),
+        r"C:\Windows\Fonts\NirmalaB.ttf",
+        r"C:\Windows\Fonts\Nirmala.ttc",
+        "/usr/share/fonts/truetype/noto/NotoSansMalayalam-Bold.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    ],
+    "italic": [
+        os.getenv("SONGBOOK_PDF_FONT_ITALIC"),
+        os.path.join(BASE_DIR, "fonts", "NotoSans-Italic.ttf"),
+        "/usr/share/fonts/truetype/noto/NotoSans-Italic.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf",
+    ],
+}
+
+
+def _register_first_available_font(name: str, candidates: list[str | None], fallback: str) -> str:
+    for path in candidates:
+        if path and os.path.exists(path):
+            try:
+                subfont_index = 0 if path.lower().endswith((".ttc", ".otc")) else 0
+                pdfmetrics.registerFont(TTFont(name, path, subfontIndex=subfont_index, shapable=True))
+                return name
+            except Exception:
+                continue
+    return fallback
+
+
+PDF_FONT_REGULAR = _register_first_available_font("SongbookUnicode", FONT_CANDIDATES["regular"], "Helvetica")
+PDF_FONT_BOLD = _register_first_available_font("SongbookUnicodeBold", FONT_CANDIDATES["bold"], "Helvetica-Bold")
+PDF_FONT_ITALIC = _register_first_available_font("SongbookUnicodeItalic", FONT_CANDIDATES["italic"], PDF_FONT_REGULAR)
 
 class NumberedCanvas(canvas.Canvas):
     """
@@ -37,7 +87,7 @@ class NumberedCanvas(canvas.Canvas):
             return
             
         self.saveState()
-        self.setFont("Helvetica-Bold", 8)
+        self.setFont(PDF_FONT_BOLD, 8)
         self.setFillColor(colors.HexColor("#4b5563")) # Gray-600
         
         # Running Header Text
@@ -52,7 +102,7 @@ class NumberedCanvas(canvas.Canvas):
         self.line(54, 55, 541, 55)
         
         # Running Footer Text
-        self.setFont("Helvetica", 7.5)
+        self.setFont(PDF_FONT_REGULAR, 7.5)
         self.drawString(54, 42, "Choir Songbook Web App | Printable PDF Version")
         
         # Dynamic Page Number
@@ -102,7 +152,7 @@ def generate_songbook_pdf(songs) -> io.BytesIO:
     cover_title_style = ParagraphStyle(
         'CoverTitle',
         parent=styles['Normal'],
-        fontName='Helvetica-Bold',
+        fontName=PDF_FONT_BOLD,
         fontSize=32,
         leading=38,
         alignment=1, # Centered
@@ -113,7 +163,7 @@ def generate_songbook_pdf(songs) -> io.BytesIO:
     cover_subtitle_style = ParagraphStyle(
         'CoverSubtitle',
         parent=styles['Normal'],
-        fontName='Helvetica',
+        fontName=PDF_FONT_REGULAR,
         fontSize=14,
         leading=18,
         alignment=1,
@@ -124,7 +174,7 @@ def generate_songbook_pdf(songs) -> io.BytesIO:
     cover_meta_style = ParagraphStyle(
         'CoverMeta',
         parent=styles['Normal'],
-        fontName='Helvetica-Oblique',
+        fontName=PDF_FONT_ITALIC,
         fontSize=9.5,
         leading=14,
         alignment=1,
@@ -135,7 +185,7 @@ def generate_songbook_pdf(songs) -> io.BytesIO:
     toc_title_style = ParagraphStyle(
         'TOCTitle',
         parent=styles['Normal'],
-        fontName='Helvetica-Bold',
+        fontName=PDF_FONT_BOLD,
         fontSize=22,
         leading=26,
         textColor=colors.HexColor("#111827"), # Gray-900
@@ -145,7 +195,7 @@ def generate_songbook_pdf(songs) -> io.BytesIO:
     toc_row_style = ParagraphStyle(
         'TOCRow',
         parent=styles['Normal'],
-        fontName='Helvetica',
+        fontName=PDF_FONT_REGULAR,
         fontSize=10,
         leading=14,
         textColor=colors.HexColor("#374151") # Gray-800
@@ -154,7 +204,7 @@ def generate_songbook_pdf(songs) -> io.BytesIO:
     toc_row_bold_style = ParagraphStyle(
         'TOCRowBold',
         parent=styles['Normal'],
-        fontName='Helvetica-Bold',
+        fontName=PDF_FONT_BOLD,
         fontSize=10,
         leading=14,
         textColor=colors.HexColor("#111827") # Gray-900
@@ -163,7 +213,7 @@ def generate_songbook_pdf(songs) -> io.BytesIO:
     song_number_style = ParagraphStyle(
         'SongNumber',
         parent=styles['Normal'],
-        fontName='Helvetica-Bold',
+        fontName=PDF_FONT_BOLD,
         fontSize=11,
         leading=13,
         textColor=colors.HexColor("#7c3aed"), # Violet-600
@@ -173,7 +223,7 @@ def generate_songbook_pdf(songs) -> io.BytesIO:
     song_title_style = ParagraphStyle(
         'SongTitle',
         parent=styles['Normal'],
-        fontName='Helvetica-Bold',
+        fontName=PDF_FONT_BOLD,
         fontSize=20,
         leading=24,
         textColor=colors.HexColor("#111827"), # Gray-900
@@ -183,7 +233,7 @@ def generate_songbook_pdf(songs) -> io.BytesIO:
     song_meta_style = ParagraphStyle(
         'SongMeta',
         parent=styles['Normal'],
-        fontName='Helvetica-Bold',
+        fontName=PDF_FONT_BOLD,
         fontSize=8,
         leading=10,
         textColor=colors.HexColor("#6b7280"), # Gray-500
@@ -193,7 +243,7 @@ def generate_songbook_pdf(songs) -> io.BytesIO:
     song_lyrics_style = ParagraphStyle(
         'SongLyrics',
         parent=styles['Normal'],
-        fontName='Times-Roman',
+        fontName=PDF_FONT_REGULAR,
         fontSize=11,
         leading=16.5,
         textColor=colors.HexColor("#1f2937") # Gray-700
@@ -202,7 +252,7 @@ def generate_songbook_pdf(songs) -> io.BytesIO:
     song_trans_style = ParagraphStyle(
         'SongTrans',
         parent=styles['Normal'],
-        fontName='Times-Italic',
+        fontName=PDF_FONT_ITALIC,
         fontSize=10,
         leading=14.5,
         textColor=colors.HexColor("#4b5563") # Gray-600

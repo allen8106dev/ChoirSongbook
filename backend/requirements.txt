@@ -11,8 +11,8 @@ httpx
 email-validator
 requests
 reportlab
+uharfbuzz
 supabase==2.15.3
-
 
 
 
