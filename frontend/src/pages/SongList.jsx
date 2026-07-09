@@ -95,10 +95,11 @@ function SongInfoPopover({ song, buttonClassName = '' }) {
 }
 
 // ─── PDF Export ──────────────────────────────────────────────────────────────
-function buildPdfExportUrl(search, languages, categories, filterMode) {
+function buildPdfExportUrl(search, languages, categories, filterMode, organizationId) {
   const params = new URLSearchParams();
   const query = search.trim();
 
+  if (organizationId) params.append('organization_id', organizationId);
   if (query) params.append('search', query);
   languages.forEach(lang => params.append('languages', lang));
   categories.forEach(cat => params.append('categories', cat));
@@ -110,7 +111,7 @@ function buildPdfExportUrl(search, languages, categories, filterMode) {
 
 // ─── Main SongList Component ─────────────────────────────────────────────────
 export default function SongList() {
-  const { songs, languages, categories, isLoading, toggleFavourite, isFavourite, currentUser } = useSongbook();
+  const { songs, languages, categories, isLoading, toggleFavourite, isFavourite, currentUser, activeOrganization, activeOrganizationId } = useSongbook();
   const navigate = useNavigate();
   const filterRef = useRef(null);
 
@@ -192,11 +193,11 @@ export default function SongList() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-3xl font-extrabold tracking-tight text-white">Songbook</h2>
+          <h2 className="text-3xl font-extrabold tracking-tight text-white">{activeOrganization?.name || 'Songbook'}</h2>
           <p className="text-sm text-gray-400 mt-0.5">Search and browse lyrics and videos</p>
         </div>
         <button
-          onClick={() => window.open(buildPdfExportUrl(searchQuery, selectedLanguages, selectedCategories, filterMode), '_blank')}
+          onClick={() => window.open(buildPdfExportUrl(searchQuery, selectedLanguages, selectedCategories, filterMode, activeOrganizationId), '_blank')}
           className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md transition-all self-start sm:self-auto cursor-pointer"
         >
           <FileDown className="w-4 h-4" /> Export PDF
@@ -365,7 +366,7 @@ export default function SongList() {
                 {letterSongs.map((song) => (
                   <div
                     key={song.id}
-                    onClick={() => navigate(`/song/${song.id}`)}
+                    onClick={() => navigate(`/org/${activeOrganizationId}/song/${song.id}`)}
                     className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3.5 py-2.5 bg-[#111219] hover:bg-[#161722] border border-[#1f212d]/70 hover:border-violet-500/30 rounded-xl cursor-pointer transition-all duration-150 group shadow-sm hover:shadow-violet-500/5"
                   >
                     <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3">

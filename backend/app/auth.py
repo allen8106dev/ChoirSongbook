@@ -3,6 +3,7 @@ from typing import Optional, Dict, List
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
@@ -58,10 +59,13 @@ def resolve_user_role(email: str, db: Session) -> str:
     if email_clean == settings.DEVELOPER_EMAIL.strip().lower():
         return "developer"
         
-    # Query organization admin memberships
-    db_admin = db.query(models.OrganizationAdmin).filter(models.OrganizationAdmin.email == email_clean).first()
-    if db_admin:
+    owned_org = db.query(models.Organization).filter(func.lower(models.Organization.owner_email) == email_clean).first()
+    if owned_org:
         return "admin"
+
+    db_member = db.query(models.OrganizationAdmin).filter(models.OrganizationAdmin.email == email_clean).first()
+    if db_member:
+        return "member"
         
     return "viewer"
 
@@ -101,7 +105,7 @@ def serialize_organization(db: Session, organization: models.Organization) -> Di
         "name": organization.name,
         "owner_email": organization.owner_email,
         "created_at": organization.created_at,
-        "admins": crud.get_org_admins(db, organization.id),
+        "admins": crud.get_org_members(db, organization.id),
         "song_count": db.query(models.Song).filter(models.Song.organization_id == organization.id).count(),
     }
 

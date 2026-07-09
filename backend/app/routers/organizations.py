@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from app import schemas, crud, auth
+from app import schemas, crud, auth, models
 from app.database import get_db
 
 router = APIRouter(prefix="/organizations", tags=["Organizations"])
@@ -20,6 +20,27 @@ def read_organizations(
     return auth.get_user_organization_payloads(current_user["email"], db)
 
 
+@router.get("/{organization_id}/public", response_model=schemas.OrganizationPublicResponse)
+def read_public_organization(
+    organization_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Public organization metadata for shared songbook links.
+    """
+    organization = crud.get_organization(db, organization_id)
+    if not organization:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found."
+        )
+    return {
+        "id": organization.id,
+        "name": organization.name,
+        "song_count": db.query(models.Song).filter(models.Song.organization_id == organization.id).count(),
+    }
+
+
 @router.post("", response_model=schemas.OrganizationResponse, status_code=status.HTTP_201_CREATED)
 def create_organization(
     organization_in: schemas.OrganizationCreate,
@@ -33,6 +54,12 @@ def create_organization(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Sign in with Google before creating an organization."
+        )
+    existing = crud.get_owned_organization(db, current_user["email"])
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This account already created an organization."
         )
     organization = crud.create_organization(db, organization_in.name, current_user["email"])
     return auth.serialize_organization(db, organization)

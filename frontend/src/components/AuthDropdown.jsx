@@ -1,15 +1,17 @@
 import { useState, useRef, useEffect } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
+import { useNavigate } from 'react-router-dom';
 import { LogOut, ChevronDown, User, Plus } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 
 export default function AuthDropdown() {
-  const { currentUser, organizations, activeOrganizationId, switchOrganization, createOrganization, handleGoogleLogin, handleLogout } = useSongbook();
+  const { currentUser, organizations, ownedOrganization, activeOrganizationId, switchOrganization, createOrganization, handleGoogleLogin, handleLogout } = useSongbook();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState('');
   const [newOrganizationName, setNewOrganizationName] = useState('');
   const [organizationError, setOrganizationError] = useState('');
   const ref = useRef(null);
+  const navigate = useNavigate();
 
   const isSignedIn = !!currentUser.email;
 
@@ -19,11 +21,17 @@ export default function AuthDropdown() {
     const name = newOrganizationName.trim();
     if (!name) return;
     try {
-      await createOrganization(name);
+      const organization = await createOrganization(name);
       setNewOrganizationName('');
+      navigate(`/org/${organization.id}`);
     } catch {
-      setOrganizationError('Could not create organization.');
+      setOrganizationError('This account may already own an organization.');
     }
+  };
+
+  const handleOrganizationChange = (organizationId) => {
+    switchOrganization(organizationId);
+    navigate(`/org/${organizationId}`);
   };
 
   // Close on outside click
@@ -38,12 +46,14 @@ export default function AuthDropdown() {
   const roleBadge = {
     developer: 'text-violet-400 bg-violet-950/40 border-violet-500/30',
     admin:     'text-indigo-400 bg-indigo-950/40 border-indigo-500/30',
+    member:    'text-emerald-400 bg-emerald-950/40 border-emerald-500/30',
     viewer:    'text-gray-500 bg-gray-900/40 border-gray-800',
   }[currentUser.role] ?? 'text-gray-500 bg-gray-900/40 border-gray-800';
 
   const avatarStyle = {
     developer: 'bg-violet-950/50 text-violet-400 border-violet-500/40',
     admin:     'bg-indigo-950/50 text-indigo-400 border-indigo-500/40',
+    member:    'bg-emerald-950/50 text-emerald-400 border-emerald-500/40',
     viewer:    'bg-gray-900 text-gray-400 border-gray-700',
   }[currentUser.role] ?? 'bg-gray-900 text-gray-400 border-gray-700';
 
@@ -90,7 +100,7 @@ export default function AuthDropdown() {
                   {organizations.length > 0 ? (
                     <select
                       value={activeOrganizationId}
-                      onChange={(event) => switchOrganization(event.target.value)}
+                      onChange={(event) => handleOrganizationChange(event.target.value)}
                       className="w-full rounded-xl border border-[#1f212d] bg-gray-950 px-3 py-2 text-xs font-semibold text-gray-200 outline-none focus:border-violet-500"
                     >
                       {organizations.map((organization) => (
@@ -100,9 +110,10 @@ export default function AuthDropdown() {
                       ))}
                     </select>
                   ) : (
-                    <p className="text-xs text-gray-500">Create an organization to start a private songbook.</p>
+                    <p className="text-xs text-gray-500">Create an organization to start a songbook.</p>
                   )}
                 </div>
+                {!ownedOrganization && currentUser.role !== 'developer' && (
                 <form onSubmit={handleCreateOrganization} className="flex gap-2">
                   <input
                     type="text"
@@ -120,6 +131,7 @@ export default function AuthDropdown() {
                     <Plus className="h-4 w-4" />
                   </button>
                 </form>
+                )}
                 {organizationError && <p className="text-[10px] text-red-400">{organizationError}</p>}
               </div>
 

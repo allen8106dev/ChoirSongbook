@@ -3,7 +3,7 @@ import { Star, ChevronRight, Video, LogIn } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 
 export default function Profile() {
-  const { currentUser, songs, favourites, toggleFavourite } = useSongbook();
+  const { currentUser, songs, favourites, toggleFavourite, activeOrganizationId } = useSongbook();
   const navigate = useNavigate();
 
   const isSignedIn = !!currentUser.email;
@@ -46,7 +46,7 @@ export default function Profile() {
             <p className="text-sm text-gray-500">Tap the ☆ star on any song to add it here.</p>
           </div>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate(activeOrganizationId ? `/org/${activeOrganizationId}` : '/')}
             className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl transition-colors"
           >
             Browse Songbook
@@ -60,7 +60,7 @@ export default function Profile() {
           {favouriteSongs.map(song => (
             <div
               key={song.id}
-              onClick={() => navigate(`/song/${song.id}`)}
+              onClick={() => navigate(`/org/${activeOrganizationId}/song/${song.id}`)}
               className="flex items-center justify-between px-3.5 py-2.5 bg-[#111219] hover:bg-[#161722] border border-[#1f212d]/70 hover:border-violet-500/30 rounded-xl cursor-pointer transition-all duration-150 group"
             >
               <div className="flex items-center gap-3 min-w-0">

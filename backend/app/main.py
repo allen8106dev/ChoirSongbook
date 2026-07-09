@@ -78,7 +78,7 @@ def health_check():
 def ensure_organization_migration():
     """
     Idempotently moves the legacy single songbook into the default church organization.
-    Existing rows are updated in place; no songs/admins/tags are deleted.
+    Existing rows are updated in place; no songs/members/tags are deleted.
     """
     db = SessionLocal()
     try:
@@ -102,8 +102,38 @@ def ensure_organization_migration():
 
     db = SessionLocal()
     try:
-        legacy_admins = db.query(models.AdminEmail).all()
+        legacy_admins = db.query(models.AdminEmail).order_by(models.AdminEmail.email).all()
+        default_org = crud.get_organization(db, default_org_id)
+        owner_candidate = next(
+            (
+                legacy_admin.email.strip().lower()
+                for legacy_admin in legacy_admins
+                if legacy_admin.email.strip().lower() != settings.DEVELOPER_EMAIL.strip().lower()
+            ),
+            legacy_admins[0].email.strip().lower() if legacy_admins else None
+        )
+        if (
+            default_org
+            and default_org.owner_email.strip().lower() in {"legacy@choir.org", settings.DEVELOPER_EMAIL.strip().lower()}
+            and owner_candidate
+        ):
+            default_org.owner_email = owner_candidate
+            db.commit()
+
         for legacy_admin in legacy_admins:
+            email_clean = legacy_admin.email.strip().lower()
+            if default_org and (
+                email_clean == default_org.owner_email.strip().lower()
+                or email_clean == settings.DEVELOPER_EMAIL.strip().lower()
+            ):
+                existing_owner_member = db.query(models.OrganizationAdmin).filter(
+                    models.OrganizationAdmin.organization_id == default_org_id,
+                    models.OrganizationAdmin.email == email_clean
+                ).first()
+                if existing_owner_member:
+                    db.delete(existing_owner_member)
+                    db.commit()
+                continue
             crud.add_admin_email(db, legacy_admin.email, default_org_id)
 
         for song in db.query(models.Song).filter(models.Song.organization_id == default_org_id).all():
@@ -136,12 +166,16 @@ def seed_data():
         # Check if songs table is empty
         song_count = db.query(models.Song).count()
         if song_count == 0:
-            print("Database is empty. Seeding default categories, languages, admin emails, and songs...")
+            print("Database is empty. Seeding default categories, languages, member emails, and songs...")
             default_org = crud.get_or_create_default_organization(db)
             
-            # 1. Seed admin emails
-            default_admins = ['admin@choir.org', 'director@choir.org']
-            for email in default_admins:
+            # 1. Seed member emails
+            default_members = ['admin@choir.org', 'director@choir.org']
+            default_org.owner_email = default_members[0]
+            db.commit()
+            for email in default_members:
+                if email == default_org.owner_email:
+                    continue
                 crud.add_admin_email(db, email, default_org.id)
                 
             # 2. Seed default categories & languages

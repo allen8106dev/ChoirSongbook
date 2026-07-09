@@ -1,24 +1,44 @@
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { useEffect } from 'react';
 import { SongbookProvider, useSongbook } from './context/SongbookContext';
 import Layout from './components/Layout';
 
 // Pages
+import Home from './pages/Home';
 import SongList from './pages/SongList';
 import SongDetail from './pages/SongDetail';
 import SongForm from './pages/SongForm';
 import AdminSettings from './pages/AdminSettings';
 import Profile from './pages/Profile';
 
-// Route Guards for Simulated Roles
-const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { currentUser } = useSongbook();
-  
-  if (!allowedRoles.includes(currentUser.role)) {
+const OrgAdminRoute = ({ children }) => {
+  const { isActiveOrgAdmin } = useSongbook();
+  if (!isActiveOrgAdmin) {
     return <Navigate to="/" replace />;
   }
-  
   return children;
 };
+
+function OrganizationScope({ children }) {
+  const { organizationId } = useParams();
+  const { activeOrganizationId, switchOrganization } = useSongbook();
+
+  useEffect(() => {
+    if (organizationId && organizationId !== activeOrganizationId) {
+      switchOrganization(organizationId);
+    }
+  }, [organizationId, activeOrganizationId, switchOrganization]);
+
+  if (organizationId && organizationId !== activeOrganizationId) {
+    return (
+      <div className="py-24 text-center text-sm font-semibold text-gray-500">
+        Loading organization...
+      </div>
+    );
+  }
+
+  return children;
+}
 
 // Wrapper to force a clean remount when viewing a different song
 function SongDetailWrapper() {
@@ -30,34 +50,41 @@ function AppRoutes() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<SongList />} />
-        <Route path="/song/:id" element={<SongDetailWrapper />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/org/:organizationId" element={<OrganizationScope><SongList /></OrganizationScope>} />
+        <Route path="/org/:organizationId/song/:id" element={<OrganizationScope><SongDetailWrapper /></OrganizationScope>} />
         
-        {/* Admin/Developer Routes */}
+        {/* Organization Admin Routes */}
         <Route 
-          path="/admin/add" 
+          path="/org/:organizationId/admin/add" 
           element={
-            <ProtectedRoute allowedRoles={['admin', 'developer']}>
+            <OrganizationScope>
+              <OrgAdminRoute>
               <SongForm />
-            </ProtectedRoute>
+              </OrgAdminRoute>
+            </OrganizationScope>
           } 
         />
         <Route 
-          path="/admin/edit/:id" 
+          path="/org/:organizationId/admin/edit/:id" 
           element={
-            <ProtectedRoute allowedRoles={['admin', 'developer']}>
+            <OrganizationScope>
+              <OrgAdminRoute>
               <SongForm />
-            </ProtectedRoute>
+              </OrgAdminRoute>
+            </OrganizationScope>
           } 
         />
         
         {/* Organization Admin Routes */}
         <Route 
-          path="/admin/settings" 
+          path="/org/:organizationId/admin/settings" 
           element={
-            <ProtectedRoute allowedRoles={['admin', 'developer']}>
+            <OrganizationScope>
+              <OrgAdminRoute>
               <AdminSettings />
-            </ProtectedRoute>
+              </OrgAdminRoute>
+            </OrganizationScope>
           } 
         />
         
@@ -72,10 +99,10 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <SongbookProvider>
-      <BrowserRouter>
+    <BrowserRouter>
+      <SongbookProvider>
         <AppRoutes />
-      </BrowserRouter>
-    </SongbookProvider>
+      </SongbookProvider>
+    </BrowserRouter>
   );
 }

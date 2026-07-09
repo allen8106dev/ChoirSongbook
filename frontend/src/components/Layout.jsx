@@ -1,30 +1,36 @@
 import { useLayoutEffect } from 'react';
-import { NavLink, Link, useLocation } from 'react-router-dom';
+import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Music, PlusCircle, Settings, Star, BookOpen, Building2 } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 import AuthDropdown from './AuthDropdown';
 
 export default function Layout({ children }) {
-  const { currentUser, organizations, activeOrganizationId, switchOrganization, activeOrganization } = useSongbook();
+  const { organizations, activeOrganizationId, switchOrganization, activeOrganization, isActiveOrgAdmin } = useSongbook();
   const location = useLocation();
+  const navigate = useNavigate();
 
   useLayoutEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [location.pathname]);
 
-  const isAtLeastAdmin =
-    currentUser.role === 'admin' || currentUser.role === 'developer';
+  const orgBase = activeOrganizationId ? `/org/${activeOrganizationId}` : '/';
+  const appName = activeOrganization?.name || 'Choir Songbook';
 
   const navItems = [
-    { to: '/', label: 'Songbook', icon: BookOpen, exact: true },
-    ...(isAtLeastAdmin
-      ? [{ to: '/admin/add', label: 'Add Song', icon: PlusCircle }]
+    { to: orgBase, label: activeOrganization?.name || 'Home', icon: BookOpen, exact: true },
+    ...(isActiveOrgAdmin && activeOrganizationId
+      ? [{ to: `${orgBase}/admin/add`, label: 'Add Song', icon: PlusCircle }]
       : []),
-    ...(isAtLeastAdmin
-      ? [{ to: '/admin/settings', label: 'Console', icon: Settings }]
+    ...(isActiveOrgAdmin && activeOrganizationId
+      ? [{ to: `${orgBase}/admin/settings`, label: 'Console', icon: Settings }]
       : []),
     { to: '/profile', label: 'Favourites', icon: Star }
   ];
+
+  const handleOrganizationChange = (organizationId) => {
+    switchOrganization(organizationId);
+    navigate(`/org/${organizationId}`);
+  };
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-[#0b0c10] text-[#eaeaea] font-sans antialiased selection:bg-violet-600 selection:text-white">
@@ -32,17 +38,17 @@ export default function Layout({ children }) {
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex md:w-64 md:flex-col bg-[#111219] border-r border-[#1f212d] shrink-0">
         <div className="px-5 py-4 border-b border-[#1f212d] flex items-center justify-between gap-2">
-          <Link to="/" className="flex items-center gap-3 group min-w-0">
+          <Link to={orgBase} className="flex items-center gap-3 group min-w-0">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20 shrink-0">
               <Music className="w-4.5 h-4.5 text-white" />
             </div>
 
             <div className="min-w-0">
               <h1 className="font-bold text-base tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent truncate">
-                Choir Songbook
+                {appName}
               </h1>
               <p className="text-[10px] text-gray-500 font-medium">
-                Mobile-First Hymnal
+                Choir Songbook
               </p>
             </div>
           </Link>
@@ -56,7 +62,7 @@ export default function Layout({ children }) {
             </label>
             <select
               value={activeOrganizationId}
-              onChange={(event) => switchOrganization(event.target.value)}
+              onChange={(event) => handleOrganizationChange(event.target.value)}
               className="w-full rounded-xl border border-[#1f212d] bg-[#0b0c10] px-3 py-2 text-xs font-semibold text-gray-200 outline-none focus:border-violet-500"
             >
               {organizations.map((organization) => (
@@ -94,13 +100,13 @@ export default function Layout({ children }) {
 
         {/* Mobile Header */}
         <header className="md:hidden flex items-center justify-between px-4 py-3 bg-[#111219] border-b border-[#1f212d]">
-          <Link to="/" className="flex items-center gap-2">
+          <Link to={orgBase} className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shrink-0">
               <Music className="w-4 h-4 text-white" />
             </div>
 
             <span className="font-bold text-base tracking-tight text-white">
-              Choir Book
+              {appName}
             </span>
           </Link>
 

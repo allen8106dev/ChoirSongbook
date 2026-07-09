@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from app import models, schemas
 from typing import List, Optional
 
@@ -28,9 +28,13 @@ def get_user_organizations(db: Session, email: str) -> List[models.Organization]
     email_clean = email.strip().lower()
     return (
         db.query(models.Organization)
-        .join(models.OrganizationAdmin)
-        .filter(models.OrganizationAdmin.email == email_clean)
+        .outerjoin(models.OrganizationAdmin)
+        .filter(or_(
+            func.lower(models.Organization.owner_email) == email_clean,
+            models.OrganizationAdmin.email == email_clean
+        ))
         .order_by(models.Organization.name)
+        .distinct()
         .all()
     )
 
@@ -43,17 +47,19 @@ def create_organization(db: Session, name: str, owner_email: str) -> models.Orga
     db.add(organization)
     db.commit()
     db.refresh(organization)
-    add_admin_email(db, owner_clean, organization.id)
     return organization
+
+def get_owned_organization(db: Session, owner_email: str) -> Optional[models.Organization]:
+    return db.query(models.Organization).filter(
+        func.lower(models.Organization.owner_email) == owner_email.strip().lower()
+    ).first()
 
 def is_org_admin(db: Session, email: str, organization_id: str) -> bool:
     email_clean = email.strip().lower()
-    return db.query(models.OrganizationAdmin).filter(
-        models.OrganizationAdmin.organization_id == organization_id,
-        models.OrganizationAdmin.email == email_clean
-    ).first() is not None
+    organization = get_organization(db, organization_id)
+    return bool(organization and organization.owner_email.strip().lower() == email_clean)
 
-def get_org_admins(db: Session, organization_id: str) -> List[models.OrganizationAdmin]:
+def get_org_members(db: Session, organization_id: str) -> List[models.OrganizationAdmin]:
     return (
         db.query(models.OrganizationAdmin)
         .filter(models.OrganizationAdmin.organization_id == organization_id)
@@ -61,34 +67,34 @@ def get_org_admins(db: Session, organization_id: str) -> List[models.Organizatio
         .all()
     )
 
-def add_admin_email(db: Session, email: str, organization_id: Optional[str] = None) -> models.OrganizationAdmin:
+def add_member_email(db: Session, email: str, organization_id: Optional[str] = None) -> models.OrganizationAdmin:
     email_clean = email.strip().lower()
     organization = get_organization(db, organization_id) if organization_id else get_or_create_default_organization(db)
-    admin = db.query(models.OrganizationAdmin).filter(
+    member = db.query(models.OrganizationAdmin).filter(
         models.OrganizationAdmin.organization_id == organization.id,
         models.OrganizationAdmin.email == email_clean
     ).first()
-    if not admin:
-        admin = models.OrganizationAdmin(organization_id=organization.id, email=email_clean)
-        db.add(admin)
+    if not member:
+        member = models.OrganizationAdmin(organization_id=organization.id, email=email_clean)
+        db.add(member)
         db.commit()
-        db.refresh(admin)
+        db.refresh(member)
     legacy_admin = db.query(models.AdminEmail).filter(models.AdminEmail.email == email_clean).first()
     if not legacy_admin and organization.name == DEFAULT_ORGANIZATION_NAME:
         legacy_admin = models.AdminEmail(email=email_clean)
         db.add(legacy_admin)
         db.commit()
-    return admin
+    return member
 
-def remove_admin_email(db: Session, email: str, organization_id: Optional[str] = None) -> bool:
+def remove_member_email(db: Session, email: str, organization_id: Optional[str] = None) -> bool:
     email_clean = email.strip().lower()
     organization = get_organization(db, organization_id) if organization_id else get_or_create_default_organization(db)
-    admin = db.query(models.OrganizationAdmin).filter(
+    member = db.query(models.OrganizationAdmin).filter(
         models.OrganizationAdmin.organization_id == organization.id,
         models.OrganizationAdmin.email == email_clean
     ).first()
-    if admin:
-        db.delete(admin)
+    if member:
+        db.delete(member)
         db.commit()
         if organization.name == DEFAULT_ORGANIZATION_NAME:
             legacy_admin = db.query(models.AdminEmail).filter(models.AdminEmail.email == email_clean).first()
@@ -265,4 +271,9 @@ def delete_song(db: Session, song_id: str, organization_id: str) -> bool:
 # --- Admin Emails CRUD ---
 def get_admin_emails(db: Session, organization_id: Optional[str] = None) -> List[models.OrganizationAdmin]:
     organization = get_organization(db, organization_id) if organization_id else get_or_create_default_organization(db)
-    return get_org_admins(db, organization.id)
+    return get_org_members(db, organization.id)
+
+# Backward-compatible names for older call sites and tests.
+add_admin_email = add_member_email
+remove_admin_email = remove_member_email
+get_org_admins = get_org_members

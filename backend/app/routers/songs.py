@@ -25,6 +25,7 @@ def export_songbook_pdf(
     categories: List[str] = Query(None),
     languages: List[str] = Query(None),
     filter_mode: str = Query("any"),
+    organization_id: str = Query(None),
     db: Session = Depends(get_db),
     organization = Depends(auth.get_active_organization)
 ):
@@ -36,6 +37,14 @@ def export_songbook_pdf(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="filter_mode must be either 'any' or 'all'."
         )
+
+    if organization_id:
+        organization = crud.get_organization(db, organization_id)
+        if not organization:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Organization not found."
+            )
 
     songs = crud.get_songs(db, organization.id)
 

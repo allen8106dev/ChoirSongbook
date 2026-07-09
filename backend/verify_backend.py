@@ -85,12 +85,12 @@ def run_tests():
     assert response.status_code == 201
     print("   [PASS] Developer admin configuration allowed.")
     
-    # Verify new email now receives 'admin' role
+    # Verify new email now receives 'member' role
     response = client.post("/api/auth/simulate", json={"email": "newadmin@choir.org"})
-    admin_token = response.json()["access_token"]
-    assert response.json()["user"]["role"] == "admin"
-    admin_headers = {"Authorization": f"Bearer {admin_token}"}
-    print("   [PASS] Role propagation verified (new user is now 'admin').")
+    member_token = response.json()["access_token"]
+    assert response.json()["user"]["role"] == "member"
+    member_headers = {"Authorization": f"Bearer {member_token}"}
+    print("   [PASS] Role propagation verified (new user is now 'member').")
     
     # --- 4. Songs CRUD & Alphabetical Re-Numbering ---
     print("\n4. Testing Song CRUD and automatic re-numbering...")
@@ -105,26 +105,36 @@ def run_tests():
     assert response.status_code == 403
     print("   [PASS] Viewer song creation blocked.")
     
-    # Add song 'Amazing Grace' as Admin -> should succeed
+    # Try adding song as member -> should fail
+    response = client.post("/api/songs", json={
+        "title": "Member Song",
+        "lyrics": "Lyrics content",
+        "languages": ["English"],
+        "categories": ["Praise"]
+    }, headers=member_headers)
+    assert response.status_code == 403
+    print("   [PASS] Member song creation blocked.")
+
+    # Add song 'Amazing Grace' as Developer -> should succeed
     response = client.post("/api/songs", json={
         "title": "Amazing Grace",
         "lyrics": "Amazing grace how sweet the sound...",
         "languages": ["English"],
         "categories": ["Praise"]
-    }, headers=admin_headers)
+    }, headers=dev_headers)
     assert response.status_code == 201
     song_ag = response.json()
     assert song_ag["title"] == "Amazing Grace"
     assert song_ag["number"] == 1
     print("   [PASS] First song 'Amazing Grace' created as #1.")
     
-    # Add song '10,000 Reasons' as Admin -> should sort before 'Amazing Grace'
+    # Add song '10,000 Reasons' as Developer -> should sort before 'Amazing Grace'
     response = client.post("/api/songs", json={
         "title": "10,000 Reasons (Bless The Lord)",
         "lyrics": "Bless the Lord, O my soul...",
         "languages": ["English"],
         "categories": ["Worship"]
-    }, headers=admin_headers)
+    }, headers=dev_headers)
     assert response.status_code == 201
     song_tr = response.json()
     assert song_tr["title"] == "10,000 Reasons (Bless The Lord)"
@@ -137,13 +147,13 @@ def run_tests():
     assert response.json()["number"] == 2
     print("   [PASS] 'Amazing Grace' automatically shifted to #2.")
     
-    # Add song 'Cornerstone' as Admin -> should sort as #3
+    # Add song 'Cornerstone' as Developer -> should sort as #3
     response = client.post("/api/songs", json={
         "title": "Cornerstone",
         "lyrics": "My hope is built on nothing less...",
         "languages": ["English"],
         "categories": ["Worship"]
-    }, headers=admin_headers)
+    }, headers=dev_headers)
     assert response.status_code == 201
     song_cs = response.json()
     assert song_cs["number"] == 3
@@ -162,7 +172,7 @@ def run_tests():
     # Update 'Cornerstone' to 'Abba Father' -> should sort between '10,000 Reasons' and 'Amazing Grace'
     response = client.put(f"/api/songs/{song_cs['id']}", json={
         "title": "Abba Father"
-    }, headers=admin_headers)
+    }, headers=dev_headers)
     assert response.status_code == 200
     assert response.json()["number"] == 2
     
@@ -174,7 +184,7 @@ def run_tests():
     # --- 7. Delete Song (Triggers renumbering) ---
     print("\n7. Testing song deletion and numbering compaction...")
     # Delete 'Abba Father'
-    response = client.delete(f"/api/songs/{song_cs['id']}", headers=admin_headers)
+    response = client.delete(f"/api/songs/{song_cs['id']}", headers=dev_headers)
     assert response.status_code == 204
 
     
@@ -208,14 +218,14 @@ def run_tests():
     print("\n9. Testing audio file upload and validation...")
     # Try uploading non-mp3 text file -> should fail with 400
     files_txt = {"file": ("test_file.txt", b"dummy content", "text/plain")}
-    response = client.post(f"/api/songs/{song_ag['id']}/audio", files=files_txt, headers=admin_headers)
+    response = client.post(f"/api/songs/{song_ag['id']}/audio", files=files_txt, headers=dev_headers)
     assert response.status_code == 400
     assert "Only MP3" in response.json()["detail"]
     print("   [PASS] Non-MP3 file upload blocked.")
     
     # Upload mock mp3 file -> should succeed
     files_mp3 = {"file": ("reference_track.mp3", b"ID3\x03\x00\x00\x00\x00\x00\x00dummy_audio_bytes", "audio/mpeg")}
-    response = client.post(f"/api/songs/{song_ag['id']}/audio", files=files_mp3, headers=admin_headers)
+    response = client.post(f"/api/songs/{song_ag['id']}/audio", files=files_mp3, headers=dev_headers)
     assert response.status_code == 200
     uploaded_song = response.json()
     assert uploaded_song["audio_url"] is not None

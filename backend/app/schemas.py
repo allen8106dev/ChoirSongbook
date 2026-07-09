@@ -27,6 +27,12 @@ class OrganizationResponse(OrganizationBase):
     
     model_config = ConfigDict(from_attributes=True)
 
+class OrganizationPublicResponse(OrganizationBase):
+    id: str
+    song_count: int = 0
+    
+    model_config = ConfigDict(from_attributes=True)
+
 # --- Category Schemas ---
 class CategoryBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)

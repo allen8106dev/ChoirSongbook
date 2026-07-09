@@ -49,6 +49,10 @@ export const apiService = {
       const response = await api.get('/organizations');
       return response.data;
     },
+    getPublic: async (id) => {
+      const response = await api.get(`/organizations/${id}/public`);
+      return response.data;
+    },
     create: async (name) => {
       const response = await api.post('/organizations', { name });
       return response.data;

@@ -18,11 +18,21 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 DEFAULT_ORG_NAME = "St. Anthony's Malankara Catholic Church"
+DEFAULT_DEV_EMAIL = "allen8106.dev@gmail.com"
 
 
 def upgrade() -> None:
     bind = op.get_bind()
     default_org_id = str(uuid.uuid4())
+    legacy_admin_rows = bind.execute(sa.text("SELECT email FROM admin_emails ORDER BY email")).fetchall()
+    owner_email = "legacy@choir.org"
+    for row in legacy_admin_rows:
+        if row[0].strip().lower() != DEFAULT_DEV_EMAIL:
+            owner_email = row[0]
+            break
+    else:
+        if legacy_admin_rows:
+            owner_email = legacy_admin_rows[0][0]
 
     op.create_table(
         "organizations",
@@ -50,7 +60,7 @@ def upgrade() -> None:
             "INSERT INTO organizations (id, name, owner_email, created_at) "
             "VALUES (:id, :name, :owner_email, CURRENT_TIMESTAMP)"
         ),
-        {"id": default_org_id, "name": DEFAULT_ORG_NAME, "owner_email": "legacy@choir.org"},
+        {"id": default_org_id, "name": DEFAULT_ORG_NAME, "owner_email": owner_email},
     )
 
     for table_name in ["songs", "categories", "languages"]:
@@ -62,8 +72,9 @@ def upgrade() -> None:
             {"org_id": default_org_id},
         )
 
-    legacy_admin_rows = bind.execute(sa.text("SELECT email FROM admin_emails")).fetchall()
     for row in legacy_admin_rows:
+        if row[0].strip().lower() in {owner_email.strip().lower(), DEFAULT_DEV_EMAIL}:
+            continue
         bind.execute(
             sa.text(
                 "INSERT INTO organization_admins (id, organization_id, email, created_at) "

@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useMemo, useEffect } from 'react';
+import { createContext, useContext, useState, useMemo, useEffect, useCallback } from 'react';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService, API_BASE_URL } from '../services/api';
@@ -27,7 +27,7 @@ export const SongbookProvider = ({ children }) => {
   const { data: favourites = [] } = useQuery({
     queryKey: ['favourites', currentUser.email, activeOrganizationId],
     queryFn: apiService.favourites.getAll,
-    enabled: !!currentUser.email, // only fetch when signed in
+    enabled: !!currentUser.email && !!activeOrganizationId,
     staleTime: 30_000,
   });
 
@@ -72,23 +72,38 @@ export const SongbookProvider = ({ children }) => {
 
   useEffect(() => {
     if (!organizations.length) return;
-    const savedOrgStillAvailable = organizations.some(org => org.id === activeOrganizationId);
-    const nextOrgId = savedOrgStillAvailable ? activeOrganizationId : organizations[0].id;
-    if (nextOrgId !== activeOrganizationId) {
-      localStorage.setItem('cs_active_org_id', nextOrgId);
-      window.setTimeout(() => setActiveOrganizationId(nextOrgId), 0);
+    if (!activeOrganizationId) {
+      localStorage.setItem('cs_active_org_id', organizations[0].id);
+      window.setTimeout(() => setActiveOrganizationId(organizations[0].id), 0);
     }
   }, [organizations, activeOrganizationId]);
 
-  const activeOrganization = useMemo(() => {
-    return organizations.find(org => org.id === activeOrganizationId) || organizations[0] || null;
-  }, [organizations, activeOrganizationId]);
+  const { data: publicOrganization = null } = useQuery({
+    queryKey: ['publicOrganization', activeOrganizationId],
+    queryFn: () => apiService.organizations.getPublic(activeOrganizationId),
+    enabled: !!activeOrganizationId && !organizations.some(org => org.id === activeOrganizationId),
+  });
 
-  const switchOrganization = (organizationId) => {
+  const activeOrganization = useMemo(() => {
+    return organizations.find(org => org.id === activeOrganizationId) || publicOrganization || null;
+  }, [organizations, publicOrganization, activeOrganizationId]);
+
+  const ownedOrganization = useMemo(() => {
+    if (!currentUser.email) return null;
+    return organizations.find(org => org.owner_email?.toLowerCase() === currentUser.email.toLowerCase()) || null;
+  }, [organizations, currentUser.email]);
+
+  const isActiveOrgAdmin = useMemo(() => {
+    if (!activeOrganization || !currentUser.email) return false;
+    if (currentUser.role === 'developer') return true;
+    return activeOrganization.owner_email?.toLowerCase() === currentUser.email.toLowerCase();
+  }, [activeOrganization, currentUser.email, currentUser.role]);
+
+  const switchOrganization = useCallback((organizationId) => {
     localStorage.setItem('cs_active_org_id', organizationId);
     setActiveOrganizationId(organizationId);
     queryClient.invalidateQueries();
-  };
+  }, [queryClient]);
   
   // Songs query
   const { data: songs = [], isLoading: isSongsLoading } = useQuery({
@@ -107,25 +122,28 @@ export const SongbookProvider = ({ children }) => {
         };
       });
     },
+    enabled: !!activeOrganizationId,
   });
 
   // Categories query
   const { data: categoriesData = [] } = useQuery({
     queryKey: ['categories', activeOrganizationId],
     queryFn: apiService.categories.getAll,
+    enabled: !!activeOrganizationId,
   });
 
   // Languages query
   const { data: languagesData = [] } = useQuery({
     queryKey: ['languages', activeOrganizationId],
     queryFn: apiService.languages.getAll,
+    enabled: !!activeOrganizationId,
   });
 
   // Admin emails list (only query if user has developer level permission)
   const { data: adminEmailsData = [] } = useQuery({
     queryKey: ['adminEmails', activeOrganizationId],
     queryFn: apiService.admin.getEmails,
-    enabled: currentUser.role === 'developer' || currentUser.role === 'admin',
+    enabled: isActiveOrgAdmin,
   });
 
   // Map API response category and language items to string lists for frontend components compatibility
@@ -152,7 +170,8 @@ export const SongbookProvider = ({ children }) => {
       localStorage.setItem('cs_auth_token', data.access_token);
       localStorage.setItem('cs_user', JSON.stringify(data.user));
       setCurrentUser(data.user);
-      const firstOrgId = data.user.organizations?.[0]?.id || '';
+      const ownedOrg = data.user.organizations?.find(org => org.owner_email?.toLowerCase() === data.user.email.toLowerCase());
+      const firstOrgId = ownedOrg?.id || data.user.organizations?.[0]?.id || activeOrganizationId || '';
       if (firstOrgId) {
         localStorage.setItem('cs_active_org_id', firstOrgId);
         setActiveOrganizationId(firstOrgId);
@@ -323,8 +342,10 @@ export const SongbookProvider = ({ children }) => {
         categories,
         currentUser,
         organizations,
+        ownedOrganization,
         activeOrganization,
         activeOrganizationId,
+        isActiveOrgAdmin,
         adminEmails,
         isLoading,
         favourites,

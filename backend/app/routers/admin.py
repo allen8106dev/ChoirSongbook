@@ -4,7 +4,7 @@ from typing import List
 from app import schemas, crud, auth
 from app.database import get_db
 
-router = APIRouter(prefix="/admin", tags=["Organization Admin Management"])
+router = APIRouter(prefix="/admin", tags=["Organization Member Management"])
 
 @router.get("/emails", response_model=List[schemas.AdminEmailResponse])
 def read_admin_emails(
@@ -12,7 +12,7 @@ def read_admin_emails(
     current_user: dict = Depends(auth.require_org_admin)
 ):
     """
-    Get all approved admin emails for the active organization.
+    Get all member emails for the active organization.
     """
     return crud.get_admin_emails(db, current_user["organization_id"])
 
@@ -23,9 +23,15 @@ def create_admin_email(
     current_user: dict = Depends(auth.require_org_admin)
 ):
     """
-    Approve a new admin email for the active organization.
+    Add a member email for the active organization.
     """
     email_clean = admin_in.email.strip().lower()
+    organization = crud.get_organization(db, current_user["organization_id"])
+    if organization and organization.owner_email.strip().lower() == email_clean:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The organization owner is already the admin."
+        )
     
     # Check if primary developer email is being added
     if email_clean == auth.settings.DEVELOPER_EMAIL.strip().lower():
@@ -43,7 +49,7 @@ def delete_admin_email(
     current_user: dict = Depends(auth.require_org_admin)
 ):
     """
-    Revoke admin privileges for the active organization.
+    Remove a member email for the active organization.
     """
     email_clean = email.strip().lower()
     
@@ -57,7 +63,7 @@ def delete_admin_email(
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Email '{email}' is not in the approved admin list."
+            detail=f"Email '{email}' is not in the member list."
         )
 
     return

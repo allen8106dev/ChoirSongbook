@@ -139,7 +139,7 @@ function getYouTubeEmbedUrl(rawUrl) {
 export default function SongDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { songs, currentUser, isLoading, toggleFavourite, isFavourite } = useSongbook();
+  const { songs, currentUser, isLoading, toggleFavourite, isFavourite, activeOrganizationId, isActiveOrgAdmin } = useSongbook();
 
   const song = songs.find(s => s.id === id);
 
@@ -215,14 +215,12 @@ export default function SongDetail() {
       <div className="text-center py-20 space-y-4">
         <h2 className="text-2xl font-bold text-white">Song not found</h2>
         <p className="text-gray-400">The song you are looking for does not exist or was deleted.</p>
-        <Link to="/" className="inline-flex items-center gap-2 text-violet-400 font-bold hover:underline">
+        <Link to={activeOrganizationId ? `/org/${activeOrganizationId}` : '/'} className="inline-flex items-center gap-2 text-violet-400 font-bold hover:underline">
           <ArrowLeft className="w-4 h-4" /> Back to Songbook
         </Link>
       </div>
     );
   }
-
-  const isAtLeastAdmin = currentUser.role === 'admin' || currentUser.role === 'developer';
 
   const increaseFontSize = () => setFontSize(p => Math.min(p + 2, 36));
   const decreaseFontSize = () => setFontSize(p => Math.max(p - 2, 12));
@@ -309,15 +307,15 @@ export default function SongDetail() {
         {/* Top Navbar */}
         <div className="flex items-center justify-between border-b border-[#1f212d] pb-3">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate(activeOrganizationId ? `/org/${activeOrganizationId}` : '/')}
             className="p-2 -ml-2 rounded-xl text-gray-400 hover:text-white hover:bg-[#111219] flex items-center gap-2 text-sm font-semibold transition-colors"
           >
             <ArrowLeft className="w-4 h-4" /><span>Back</span>
           </button>
 
-          {isAtLeastAdmin && (
+          {isActiveOrgAdmin && (
             <button
-              onClick={() => navigate(`/admin/edit/${song.id}`)}
+              onClick={() => navigate(`/org/${activeOrganizationId}/admin/edit/${song.id}`)}
               className="p-2 bg-[#111219] border border-[#1f212d] hover:border-violet-500/40 rounded-xl text-gray-300 hover:text-violet-400 transition-all flex items-center justify-center"
               title="Edit Song"
             >

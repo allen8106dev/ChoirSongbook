@@ -6,7 +6,9 @@ export default function AdminSettings() {
   const {
     languages,
     categories,
+    currentUser,
     organizations,
+    ownedOrganization,
     activeOrganization,
     activeOrganizationId,
     switchOrganization,
@@ -131,7 +133,7 @@ export default function AdminSettings() {
         </div>
         <div className="min-w-0">
           <h2 className="text-[1.55rem] sm:text-xl font-bold text-white leading-tight">Developer Console</h2>
-          <p className="text-sm sm:text-xs text-gray-500">Manage organization admins, language tags, and categories</p>
+          <p className="text-sm sm:text-xs text-gray-500">Manage members, language tags, and categories</p>
         </div>
       </div>
 
@@ -142,7 +144,7 @@ export default function AdminSettings() {
             <Building2 className="w-4 h-4 text-violet-400" /> Organization
           </h3>
           <p className="text-sm sm:text-xs text-gray-400 mt-1">
-            Songs, admins, categories, and languages are scoped to the selected organization.
+            Songs, members, categories, and languages are scoped to the selected organization.
           </p>
         </div>
 
@@ -171,7 +173,7 @@ export default function AdminSettings() {
                   <p className="mt-1 font-semibold">{activeOrganization.song_count}</p>
                 </div>
                 <div className="rounded-2xl border border-[#1f212d] bg-gray-900/30 p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Admins</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Members</p>
                   <p className="mt-1 font-semibold">{adminEmails.length}</p>
                 </div>
               </div>
@@ -179,6 +181,7 @@ export default function AdminSettings() {
           </div>
         )}
 
+        {!ownedOrganization && activeOrganization?.owner_email?.toLowerCase() === currentUser?.email?.toLowerCase() && (
         <form onSubmit={handleCreateOrganization} className="space-y-2">
           <div className="grid gap-2 sm:flex sm:flex-row">
             <input
@@ -197,16 +200,17 @@ export default function AdminSettings() {
           </div>
           {organizationError && <p className="text-sm font-semibold text-red-400">{organizationError}</p>}
         </form>
+        )}
       </div>
 
-      {/* Admin Email Management */}
+      {/* Member Email Management */}
       <div className="w-full p-4 sm:p-5 bg-[#111219] border border-[#1f212d] rounded-3xl space-y-4 overflow-hidden">
         <div>
           <h3 className="flex items-center gap-2 text-[15px] sm:text-sm font-semibold text-white sm:uppercase sm:tracking-wider">
-            <Mail className="w-4 h-4 text-violet-400" /> Admin Access Controls
+            <Mail className="w-4 h-4 text-violet-400" /> Member Access Controls
           </h3>
           <p className="text-sm sm:text-xs text-gray-400 mt-1">
-            Admins can add/edit songs and upload audio. Add approved Google emails below.
+            Members can be part of multiple organizations. Add approved Google emails below.
           </p>
         </div>
 
@@ -220,14 +224,14 @@ export default function AdminSettings() {
                   onClick={() => removeAdminEmail(email)}
                   className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-gray-800/60 px-4 text-sm font-semibold text-gray-200 transition-colors hover:bg-red-950/20 hover:text-red-300 sm:min-h-0 sm:w-fit sm:px-3 sm:py-1.5 sm:text-gray-500 sm:hover:bg-red-950/20 sm:justify-self-end"
                   title="Remove Admin Role"
-                  aria-label="Remove Admin Role"
+                  aria-label="Remove member"
                 >
                   <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                 </button>
               ) : (
-                <span className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-violet-900/30 bg-violet-950/20 px-4 text-sm font-semibold text-violet-300 sm:min-h-0 sm:w-fit sm:px-3 sm:py-1.5 sm:text-[9px] sm:font-black sm:uppercase sm:justify-self-end">
-                  Primary Dev
-                </span>
+              <span className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-violet-900/30 bg-violet-950/20 px-4 text-sm font-semibold text-violet-300 sm:min-h-0 sm:w-fit sm:px-3 sm:py-1.5 sm:text-[9px] sm:font-black sm:uppercase sm:justify-self-end">
+                Developer
+              </span>
               )}
             </RowShell>
           ))}
@@ -247,7 +251,7 @@ export default function AdminSettings() {
               type="submit"
               className="flex min-h-11 items-center justify-center gap-1.5 rounded-2xl bg-violet-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-violet-500 sm:shrink-0 sm:text-xs"
             >
-              <Plus className="w-3.5 h-3.5" /> Add Admin
+              <Plus className="w-3.5 h-3.5" /> Add Member
             </button>
           </div>
           {emailError && <p className="text-sm font-semibold text-red-400">{emailError}</p>}

@@ -41,6 +41,7 @@ export default function SongForm() {
     songs,
     languages: availableLanguages,
     categories: availableCategories,
+    activeOrganizationId,
     addSong,
     updateSong,
     deleteSong
@@ -88,7 +89,7 @@ export default function SongForm() {
       } else {
         savedSong = await addSong(payload);
       }
-      navigate(`/song/${savedSong.id || id}`);
+      navigate(`/org/${activeOrganizationId}/song/${savedSong.id || id}`);
     } catch (err) {
       console.error('Failed to save song:', err);
     }
@@ -96,7 +97,7 @@ export default function SongForm() {
 
   const handleDelete = async () => {
     if (isEditMode) {
-      try { await deleteSong(id); navigate('/'); }
+      try { await deleteSong(id); navigate(`/org/${activeOrganizationId}`); }
       catch (err) { console.error('Failed to delete song:', err); }
     }
   };
@@ -144,7 +145,7 @@ export default function SongForm() {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-[#1f212d] pb-4">
         <button
-          onClick={() => navigate(isEditMode ? `/song/${id}` : '/')}
+          onClick={() => navigate(isEditMode ? `/org/${activeOrganizationId}/song/${id}` : `/org/${activeOrganizationId}`)}
           className="p-2 -ml-2 rounded-xl text-gray-400 hover:text-white hover:bg-[#111219] flex items-center gap-2 text-sm font-semibold transition-colors"
         >
           <ArrowLeft className="w-5 h-5" /><span>Cancel</span>
