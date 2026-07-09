@@ -17,20 +17,16 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FONT_CANDIDATES = {
     "regular": [
         os.getenv("SONGBOOK_PDF_FONT_REGULAR"),
-        os.path.join(BASE_DIR, "fonts", "NotoSansMalayalam-Regular.ttf"),
         os.path.join(BASE_DIR, "fonts", "NotoSans-Regular.ttf"),
         r"C:\Windows\Fonts\Nirmala.ttc",
-        "/usr/share/fonts/truetype/noto/NotoSansMalayalam-Regular.ttf",
         "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     ],
     "bold": [
         os.getenv("SONGBOOK_PDF_FONT_BOLD"),
-        os.path.join(BASE_DIR, "fonts", "NotoSansMalayalam-Bold.ttf"),
         os.path.join(BASE_DIR, "fonts", "NotoSans-Bold.ttf"),
         r"C:\Windows\Fonts\NirmalaB.ttf",
         r"C:\Windows\Fonts\Nirmala.ttc",
-        "/usr/share/fonts/truetype/noto/NotoSansMalayalam-Bold.ttf",
         "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
     ],
@@ -40,6 +36,54 @@ FONT_CANDIDATES = {
         "/usr/share/fonts/truetype/noto/NotoSans-Italic.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf",
     ],
+}
+
+SCRIPT_FONT_CANDIDATES = {
+    "malayalam": {
+        "regular": [
+            os.getenv("SONGBOOK_PDF_MALAYALAM_FONT_REGULAR"),
+            os.path.join(BASE_DIR, "fonts", "NotoSansMalayalam-Regular.ttf"),
+            r"C:\Windows\Fonts\Nirmala.ttc",
+            "/usr/share/fonts/truetype/noto/NotoSansMalayalam-Regular.ttf",
+        ],
+        "bold": [
+            os.getenv("SONGBOOK_PDF_MALAYALAM_FONT_BOLD"),
+            os.path.join(BASE_DIR, "fonts", "NotoSansMalayalam-Bold.ttf"),
+            r"C:\Windows\Fonts\NirmalaB.ttf",
+            r"C:\Windows\Fonts\Nirmala.ttc",
+            "/usr/share/fonts/truetype/noto/NotoSansMalayalam-Bold.ttf",
+        ],
+    },
+    "devanagari": {
+        "regular": [
+            os.getenv("SONGBOOK_PDF_DEVANAGARI_FONT_REGULAR"),
+            os.path.join(BASE_DIR, "fonts", "NotoSansDevanagari-Regular.ttf"),
+            r"C:\Windows\Fonts\Nirmala.ttc",
+            "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf",
+        ],
+        "bold": [
+            os.getenv("SONGBOOK_PDF_DEVANAGARI_FONT_BOLD"),
+            os.path.join(BASE_DIR, "fonts", "NotoSansDevanagari-Bold.ttf"),
+            r"C:\Windows\Fonts\NirmalaB.ttf",
+            r"C:\Windows\Fonts\Nirmala.ttc",
+            "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Bold.ttf",
+        ],
+    },
+    "tamil": {
+        "regular": [
+            os.getenv("SONGBOOK_PDF_TAMIL_FONT_REGULAR"),
+            os.path.join(BASE_DIR, "fonts", "NotoSansTamil-Regular.ttf"),
+            r"C:\Windows\Fonts\Nirmala.ttc",
+            "/usr/share/fonts/truetype/noto/NotoSansTamil-Regular.ttf",
+        ],
+        "bold": [
+            os.getenv("SONGBOOK_PDF_TAMIL_FONT_BOLD"),
+            os.path.join(BASE_DIR, "fonts", "NotoSansTamil-Bold.ttf"),
+            r"C:\Windows\Fonts\NirmalaB.ttf",
+            r"C:\Windows\Fonts\Nirmala.ttc",
+            "/usr/share/fonts/truetype/noto/NotoSansTamil-Bold.ttf",
+        ],
+    },
 }
 
 
@@ -58,6 +102,55 @@ def _register_first_available_font(name: str, candidates: list[str | None], fall
 PDF_FONT_REGULAR = _register_first_available_font("SongbookUnicode", FONT_CANDIDATES["regular"], "Helvetica")
 PDF_FONT_BOLD = _register_first_available_font("SongbookUnicodeBold", FONT_CANDIDATES["bold"], "Helvetica-Bold")
 PDF_FONT_ITALIC = _register_first_available_font("SongbookUnicodeItalic", FONT_CANDIDATES["italic"], PDF_FONT_REGULAR)
+
+SCRIPT_FONTS = {
+    script: {
+        "regular": _register_first_available_font(
+            f"Songbook{script.title()}",
+            candidates["regular"],
+            PDF_FONT_REGULAR,
+        ),
+        "bold": _register_first_available_font(
+            f"Songbook{script.title()}Bold",
+            candidates["bold"],
+            PDF_FONT_BOLD,
+        ),
+    }
+    for script, candidates in SCRIPT_FONT_CANDIDATES.items()
+}
+
+SCRIPT_RANGES = (
+    ("devanagari", range(0x0900, 0x0980)),
+    ("tamil", range(0x0B80, 0x0C00)),
+    ("malayalam", range(0x0D00, 0x0D80)),
+)
+
+
+def _detect_script(text: str | None) -> str | None:
+    for char in text or "":
+        codepoint = ord(char)
+        for script, codepoints in SCRIPT_RANGES:
+            if codepoint in codepoints:
+                return script
+    return None
+
+
+def _font_for_text(text: str | None, bold: bool = False, italic: bool = False) -> str:
+    script = _detect_script(text)
+    if script:
+        return SCRIPT_FONTS[script]["bold" if bold else "regular"]
+    if bold:
+        return PDF_FONT_BOLD
+    if italic:
+        return PDF_FONT_ITALIC
+    return PDF_FONT_REGULAR
+
+
+def _style_for_text(base_style: ParagraphStyle, text: str | None, bold: bool = False, italic: bool = False) -> ParagraphStyle:
+    font_name = _font_for_text(text, bold=bold, italic=italic)
+    if font_name == base_style.fontName:
+        return base_style
+    return ParagraphStyle(f"{base_style.name}-{font_name}", parent=base_style, fontName=font_name)
 
 class NumberedCanvas(canvas.Canvas):
     """
@@ -297,9 +390,10 @@ def generate_songbook_pdf(songs) -> io.BytesIO:
             page_val = str(collected_pages.get(song.id, "99")) if collected_pages else "99"
             title_text = f"<b>{song.number}.</b> {song.title}"
             dots = ". " * 32
+            toc_song_style = _style_for_text(toc_row_style, song.title)
             
             toc_data.append([
-                Paragraph(title_text, toc_row_style),
+                Paragraph(title_text, toc_song_style),
                 Paragraph(dots, ParagraphStyle('dots', parent=toc_row_style, textColor=colors.HexColor("#d1d5db"), alignment=1)),
                 Paragraph(page_val, ParagraphStyle('page', parent=toc_row_bold_style, alignment=2))
             ])
@@ -325,28 +419,32 @@ def generate_songbook_pdf(songs) -> io.BytesIO:
                 langs = [l.name for l in song.languages]
                 meta_tokens.append(f"Languages: {', '.join(langs)}")
             meta_label = " | ".join(meta_tokens).upper()
+            title_style = _style_for_text(song_title_style, song.title, bold=True)
+            meta_style = _style_for_text(song_meta_style, meta_label, bold=True)
+            lyrics_style = _style_for_text(song_lyrics_style, song.lyrics)
             
             # Song Label
             story.append(Paragraph(f"SONG {song.number}", song_number_style))
             
             # Title (with custom flowable in first pass to capture layout page)
             if collected_pages is not None:
-                story.append(Paragraph(song.title, song_title_style))
+                story.append(Paragraph(song.title, title_style))
             else:
-                story.append(SongHeadingParagraph(song.id, song.title, song_title_style, song_pages_cache))
+                story.append(SongHeadingParagraph(song.id, song.title, title_style, song_pages_cache))
                 
-            story.append(Paragraph(meta_label, song_meta_style))
+            story.append(Paragraph(meta_label, meta_style))
             
             # Song Lyrics
             lyrics_html = song.lyrics.replace("\n", "<br/>")
-            story.append(Paragraph(lyrics_html, song_lyrics_style))
+            story.append(Paragraph(lyrics_html, lyrics_style))
             
             # Transliteration text if present
             if song.transliteration:
+                trans_style = _style_for_text(song_trans_style, song.transliteration, italic=True)
                 story.append(Spacer(1, 15))
                 story.append(Paragraph("<b>TRANSLITERATION:</b>", ParagraphStyle('TransTitle', parent=song_meta_style, spaceAfter=5)))
                 trans_html = song.transliteration.replace("\n", "<br/>")
-                story.append(Paragraph(trans_html, song_trans_style))
+                story.append(Paragraph(trans_html, trans_style))
                 
             story.append(PageBreak())
             
