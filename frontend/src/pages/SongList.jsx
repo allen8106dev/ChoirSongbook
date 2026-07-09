@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Globe, Tag, ChevronRight, X, Volume2, FileDown, SlidersHorizontal, ChevronDown, Star } from 'lucide-react';
+import { Search, Globe, Tag, ChevronRight, X, Video, FileDown, SlidersHorizontal, ChevronDown, Star } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 import { API_BASE_URL } from '../services/api';
 
@@ -103,6 +103,8 @@ function PdfExportModal({ isOpen, onClose, languages, categories, initialSearch,
 
   useEffect(() => {
     if (isOpen) {
+      // Keep the export dialog aligned with the active filters when it opens.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSearch(initialSearch);
       setSelLangs(initialLanguages);
       setSelCats(initialCategories);
@@ -340,7 +342,7 @@ export default function SongList() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h2 className="text-3xl font-extrabold tracking-tight text-white">Songbook</h2>
-          <p className="text-sm text-gray-400 mt-0.5">Search and browse lyrics and reference tracks</p>
+          <p className="text-sm text-gray-400 mt-0.5">Search and browse lyrics and videos</p>
         </div>
         <button
           onClick={() => setShowPdfModal(true)}
@@ -530,7 +532,7 @@ export default function SongList() {
                     </div>
 
                     <div className="flex items-center gap-2 justify-self-end text-gray-500 group-hover:text-gray-300 transition-colors pl-2 shrink-0">
-                      {song.audioUrl && <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
+                      {song.audioUrl && <Video className="w-3.5 h-3.5 text-red-400" />}
                       {currentUser.email && (
                         <button
                           onClick={e => { e.stopPropagation(); toggleFavourite(song.id); }}

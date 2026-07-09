@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Star, ChevronRight, Volume2, Music, LogIn } from 'lucide-react';
+import { Star, ChevronRight, Video, LogIn } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 
 export default function Profile() {
@@ -84,7 +84,7 @@ export default function Profile() {
               </div>
 
               <div className="flex items-center gap-2 shrink-0 pl-2">
-                {song.audioUrl && <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
+                {song.audioUrl && <Video className="w-3.5 h-3.5 text-red-400" />}
                 {/* Un-star button */}
                 <button
                   onClick={e => { e.stopPropagation(); toggleFavourite(song.id); }}

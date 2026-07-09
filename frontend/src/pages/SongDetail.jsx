@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Edit3, Play, Pause, Volume2, Type, Globe, Tag, Sparkles, Maximize2, Minimize2, Star } from 'lucide-react';
+import { ArrowLeft, Edit3, Type, Maximize2, Minimize2, Star, Video } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 
 function SongTagGroup({ label, items, toneClassName }) {
@@ -107,6 +107,35 @@ function parseLyricSections(raw) {
   return sections.length > 0 ? sections : [{ heading: '', text: raw }];
 }
 
+function getYouTubeEmbedUrl(rawUrl) {
+  if (!rawUrl) return null;
+
+  try {
+    const url = new URL(rawUrl);
+    const hostname = url.hostname.replace(/^www\./, '').toLowerCase();
+    let videoId = '';
+
+    if (hostname === 'youtu.be') {
+      videoId = url.pathname.split('/').filter(Boolean)[0] || '';
+    } else if (hostname === 'youtube.com' || hostname === 'm.youtube.com' || hostname === 'youtube-nocookie.com') {
+      if (url.pathname === '/watch') {
+        videoId = url.searchParams.get('v') || '';
+      } else {
+        const parts = url.pathname.split('/').filter(Boolean);
+        if (['embed', 'shorts', 'live'].includes(parts[0])) {
+          videoId = parts[1] || '';
+        }
+      }
+    }
+
+    return /^[A-Za-z0-9_-]{11}$/.test(videoId)
+      ? `https://www.youtube.com/embed/${videoId}`
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function SongDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -118,14 +147,8 @@ export default function SongDetail() {
   const [activeLyricSection, setActiveLyricSection] = useState(0);
   const [animating, setAnimating] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [playbackRate, setPlaybackRate] = useState(1);
-
-  const audioRef = useRef(null);
-
   const lyricSections = song ? parseLyricSections(song.lyrics) : [{ heading: '', text: '' }];
+  const youtubeEmbedUrl = song ? getYouTubeEmbedUrl(song.audioUrl) : null;
 
   // Smooth section switch with fade animation
   const switchSection = (idx) => {
@@ -176,7 +199,6 @@ export default function SongDetail() {
       document.removeEventListener('webkitfullscreenchange', onFsChange);
       document.body.style.overflow = '';
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (isLoading) {
@@ -205,34 +227,8 @@ export default function SongDetail() {
   const increaseFontSize = () => setFontSize(p => Math.min(p + 2, 36));
   const decreaseFontSize = () => setFontSize(p => Math.max(p - 2, 12));
 
-  const togglePlay = () => {
-    if (!audioRef.current) return;
-    if (isPlaying) audioRef.current.pause();
-    else audioRef.current.play().catch(err => console.log('Playback error:', err));
-    setIsPlaying(!isPlaying);
-  };
-
-  const handleTimeUpdate = () => { if (audioRef.current) setCurrentTime(audioRef.current.currentTime); };
-  const handleLoadedMetadata = () => { if (audioRef.current) setDuration(audioRef.current.duration); };
-  const handleSeek = (e) => {
-    const time = parseFloat(e.target.value);
-    setCurrentTime(time);
-    if (audioRef.current) audioRef.current.currentTime = time;
-  };
-  const handleSpeedChange = (speed) => {
-    setPlaybackRate(speed);
-    if (audioRef.current) audioRef.current.playbackRate = speed;
-  };
-  const handleAudioEnded = () => { setIsPlaying(false); setCurrentTime(0); };
-
-  const formatTime = (t) => {
-    if (isNaN(t)) return '0:00';
-    const m = Math.floor(t / 60), s = Math.floor(t % 60);
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
-
   // ─── Shared lyric content (used in both normal and fullscreen view) ──────
-  const LyricBody = ({ fullscreen = false }) => (
+  const renderLyricBody = (fullscreen = false) => (
     <div
       key={activeLyricSection}
       style={{ fontSize: `${fullscreen ? Math.max(fontSize, 20) : fontSize}px` }}
@@ -243,7 +239,7 @@ export default function SongDetail() {
   );
 
   // ─── Section tab strip ───────────────────────────────────────────────────
-  const SectionTabs = ({ size = 'sm' }) => lyricSections.length > 1 ? (
+  const renderSectionTabs = (size = 'sm') => lyricSections.length > 1 ? (
     <div className="flex items-center gap-1 flex-wrap">
       {lyricSections.map((section, idx) => (
         <button
@@ -280,7 +276,7 @@ export default function SongDetail() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0 ml-3">
-          <SectionTabs size="sm" />
+          {renderSectionTabs('sm')}
           {/* Font controls */}
           <div className="flex items-center gap-1">
             <button onClick={decreaseFontSize} disabled={fontSize <= 12} className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 font-bold border border-white/10 flex items-center justify-center text-[10px] text-gray-300">A-</button>
@@ -298,7 +294,7 @@ export default function SongDetail() {
 
       {/* Lyrics body — full remaining height, scrollable */}
       <div className="flex-1 overflow-y-auto px-6 py-6 md:px-16 md:py-10">
-        <LyricBody fullscreen />
+        {renderLyricBody(true)}
       </div>
     </div>,
     document.body
@@ -362,7 +358,7 @@ export default function SongDetail() {
         {/* Card toolbar: section tabs + font controls + fullscreen */}
         <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-[#1f212d]/60 bg-[#0e0f16]/60 flex-wrap">
           {/* Section tabs */}
-          <SectionTabs size="sm" />
+          {renderSectionTabs('sm')}
           {lyricSections.length === 1 && (
             <span className="text-[10px] font-bold text-gray-600 uppercase tracking-wider flex items-center gap-1">
               <Type className="w-3 h-3" /> Lyrics
@@ -391,70 +387,36 @@ export default function SongDetail() {
 
         {/* Lyrics body */}
         <div className="px-6 py-6 md:px-10 md:py-8">
-          <LyricBody />
+          {renderLyricBody()}
         </div>
       </div>
 
-      {/* Audio Player */}
+      {/* YouTube Video */}
       {song.audioUrl ? (
-        <div className="p-4 bg-[#111219]/90 backdrop-blur-md border border-[#1f212d] rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xl">
-          <audio
-            ref={audioRef}
-            src={song.audioUrl}
-            onTimeUpdate={handleTimeUpdate}
-            onLoadedMetadata={handleLoadedMetadata}
-            onEnded={handleAudioEnded}
-          />
-          <div className="flex items-center gap-3">
-            <button
-              onClick={togglePlay}
-              className="w-11 h-11 rounded-full bg-violet-600 hover:bg-violet-500 hover:scale-105 active:scale-95 text-white flex items-center justify-center transition-all shadow-md shadow-violet-600/20"
-            >
-              {isPlaying ? <Pause className="w-5 h-5 fill-white" /> : <Play className="w-5 h-5 fill-white ml-0.5" />}
-            </button>
-            <div>
-              <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                <Sparkles className="w-3 h-3 text-emerald-400 animate-spin" /> Reference Track
-              </span>
-              <p className="text-[10px] text-gray-500 font-medium">Click play to listen to tune</p>
+        youtubeEmbedUrl ? (
+          <div className="overflow-hidden rounded-2xl border border-[#1f212d] bg-[#111219]/90 shadow-2xl shadow-black/30">
+            <div className="flex items-center gap-2 border-b border-[#1f212d] px-4 py-3">
+              <Video className="w-4 h-4 text-red-400" />
+              <span className="text-xs font-bold text-white">YouTube Video</span>
+            </div>
+            <div className="aspect-video w-full bg-black">
+              <iframe
+                src={youtubeEmbedUrl}
+                title={`${song.title} YouTube video`}
+                className="h-full w-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
             </div>
           </div>
-
-          <div className="flex-1 flex items-center gap-3">
-            <span className="text-[10px] text-gray-500 font-mono w-8 text-right">{formatTime(currentTime)}</span>
-            <input
-              type="range"
-              min={0}
-              max={duration || 100}
-              value={currentTime}
-              onChange={handleSeek}
-              className="flex-1 accent-violet-600 bg-gray-800 h-1 rounded-lg cursor-pointer appearance-none"
-            />
-            <span className="text-[10px] text-gray-500 font-mono w-8">{formatTime(duration)}</span>
+        ) : (
+          <div className="p-4 bg-red-950/10 border border-red-900/30 rounded-2xl text-center text-xs text-red-300 font-medium">
+            Add a valid YouTube URL to show the video for this song.
           </div>
-
-          <div className="flex items-center gap-1.5 self-end md:self-auto border-t md:border-t-0 pt-2.5 md:pt-0 border-[#1f212d]/60">
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mr-1.5 flex items-center gap-1">
-              <Volume2 className="w-3.5 h-3.5 text-gray-400" /> Speed:
-            </span>
-            {[0.8, 1.0, 1.2].map(speed => (
-              <button
-                key={speed}
-                onClick={() => handleSpeedChange(speed)}
-                className={`px-2.5 py-1 rounded text-[10px] font-black transition-all ${
-                  playbackRate === speed
-                    ? 'bg-violet-600/20 border border-violet-500/60 text-violet-400'
-                    : 'bg-[#15161f] text-gray-400 hover:text-white border border-[#1f212d]'
-                }`}
-              >
-                {speed}x
-              </button>
-            ))}
-          </div>
-        </div>
+        )
       ) : (
         <div className="p-4 bg-[#111219]/25 border border-dashed border-[#1f212d] rounded-2xl text-center text-xs text-gray-500 font-medium">
-          No reference track uploaded for this song.
+          No YouTube video added for this song.
         </div>
       )}
     </div>

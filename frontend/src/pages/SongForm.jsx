@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Save, Trash2, Plus, X, Globe, Tag, Music, ArrowLeft, AlertTriangle, FileText } from 'lucide-react';
+import { Save, Trash2, Plus, X, Globe, Tag, Video, ArrowLeft, AlertTriangle, FileText } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 
 // ─── Parse existing lyrics string into sections ─────────────────────────────
@@ -43,8 +43,7 @@ export default function SongForm() {
     categories: availableCategories,
     addSong,
     updateSong,
-    deleteSong,
-    uploadSongAudio
+    deleteSong
   } = useSongbook();
 
   const songToEdit = isEditMode ? songs.find(s => s.id === id) : null;
@@ -68,14 +67,6 @@ export default function SongForm() {
   const [lyricSections, setLyricSections] = useState(() => parseLyricSections(songToEdit?.lyrics));
   const [activeLyricTab, setActiveLyricTab] = useState(0);
 
-  // Audio
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const showAudioComingSoon = true;
-  const [audioSource, setAudioSource] = useState(() => {
-    if (songToEdit?.audioUrl && !songToEdit.audioUrl.includes('/uploads/')) return 'url';
-    return 'upload';
-  });
 
   // Delete confirm
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -89,7 +80,6 @@ export default function SongForm() {
       languages: songLanguages.length > 0 ? songLanguages : ['English'],
       categories: songCategories
     };
-    if (audioSource === 'upload') payload.audioUrl = '';
 
     try {
       let savedSong = null;
@@ -98,15 +88,9 @@ export default function SongForm() {
       } else {
         savedSong = await addSong(payload);
       }
-      if (audioSource === 'upload' && selectedFile && savedSong) {
-        setIsUploading(true);
-        await uploadSongAudio(savedSong.id, selectedFile);
-        setIsUploading(false);
-      }
       navigate(`/song/${savedSong.id || id}`);
     } catch (err) {
       console.error('Failed to save song:', err);
-      setIsUploading(false);
     }
   };
 
@@ -339,103 +323,28 @@ export default function SongForm() {
           )}
         </div>
 
-        {/* Reference Audio — below lyrics */}
+        {/* YouTube URL */}
         <div className="space-y-2">
           <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Music className="w-3.5 h-3.5 text-emerald-400" /> Reference Audio (Optional)
+            <Video className="w-3.5 h-3.5 text-red-400" /> YouTube URL (Optional)
           </label>
-
-          {showAudioComingSoon ? (
-            <div className="rounded-2xl border border-dashed border-[#1f212d] bg-[#111219]/30 px-4 py-5 text-center space-y-1.5">
-              <p className="text-sm font-bold text-white">Coming soon</p>
-              <p className="text-xs text-gray-500">MP3 upload and external audio URL support will be available here later.</p>
-            </div>
-          ) : (
-            <>
-              {/* Source toggle */}
-              <div className="flex gap-1.5 p-1 bg-gray-950 border border-[#1f212d] rounded-2xl w-fit">
-                {['upload', 'url'].map(src => (
-                  <button
-                    key={src}
-                    type="button"
-                    onClick={() => setAudioSource(src)}
-                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
-                      audioSource === src ? 'bg-[#111219] text-white border border-[#1f212d]' : 'text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    {src === 'upload' ? 'Upload MP3' : 'External URL'}
-                  </button>
-                ))}
-              </div>
-
-              {audioSource === 'upload' ? (
-                <div className="space-y-2">
-                  {isEditMode && songToEdit?.audioUrl && !selectedFile && (
-                    <div className="flex items-center justify-between p-3 bg-emerald-950/20 border border-emerald-900/30 rounded-xl text-xs">
-                      <span className="text-emerald-400 font-medium truncate max-w-[80%]">Active: {songToEdit.audioUrl.split('/').pop()}</span>
-                      <span className="text-[10px] font-black uppercase text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-900/20">On Server</span>
-                    </div>
-                  )}
-                  <div
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      const file = e.dataTransfer.files[0];
-                      if (file && file.name.toLowerCase().endsWith('.mp3')) setSelectedFile(file);
-                    }}
-                    className="border border-dashed border-[#1f212d] hover:border-violet-500/50 rounded-2xl p-5 text-center transition-all bg-[#111219]/20 hover:bg-[#111219]/40 cursor-pointer relative"
-                  >
-                    <input
-                      type="file"
-                      accept="audio/mp3,audio/mpeg"
-                      onChange={(e) => { if (e.target.files?.[0]) setSelectedFile(e.target.files[0]); }}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                    <div className="flex flex-col items-center gap-1.5">
-                      <Music className="w-7 h-7 text-gray-500" />
-                      {selectedFile ? (
-                        <div>
-                          <p className="text-xs font-bold text-white truncate max-w-[250px]">{selectedFile.name}</p>
-                          <p className="text-[10px] text-gray-500">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
-                        </div>
-                      ) : (
-                        <div>
-                          <p className="text-xs font-bold text-gray-300">Click to choose or drag MP3 here</p>
-                          <p className="text-[10px] text-gray-500">Max 15MB · MP3 only</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  {selectedFile && (
-                    <button type="button" onClick={() => setSelectedFile(null)} className="text-xs font-bold text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors">
-                      <X className="w-3.5 h-3.5" /> Remove file
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <input
-                  type="url"
-                  placeholder="e.g. https://domain.com/audio/hymn.mp3"
-                  {...register('audioUrl')}
-                  className="w-full px-4 py-3 bg-[#111219] border border-[#1f212d] focus:border-violet-500 rounded-2xl text-sm placeholder-gray-600 focus:outline-none transition-colors shadow-inner"
-                />
-              )}
-            </>
-          )}
+          <input
+            type="url"
+            placeholder="https://www.youtube.com/watch?v=..."
+            {...register('audioUrl')}
+            className="w-full px-4 py-3 bg-[#111219] border border-[#1f212d] focus:border-violet-500 rounded-2xl text-sm placeholder-gray-600 focus:outline-none transition-colors shadow-inner"
+          />
+          <p className="text-xs text-gray-500">
+            Paste a YouTube video link to show it below the lyrics.
+          </p>
         </div>
-
         {/* Action Buttons */}
         <div className="flex flex-col gap-3 pt-4 border-t border-[#1f212d]/60">
           <button
             type="submit"
-            disabled={isUploading}
             className="w-full py-3.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-violet-600/10 transition-all cursor-pointer disabled:opacity-50"
           >
-            {isUploading ? (
-              <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /><span>Uploading track...</span></>
-            ) : (
-              <><Save className="w-4 h-4" /><span>{isEditMode ? 'Update Song Details' : 'Publish Song'}</span></>
-            )}
+            <Save className="w-4 h-4" /><span>{isEditMode ? 'Update Song Details' : 'Publish Song'}</span>
           </button>
 
           {isEditMode && (
