@@ -93,12 +93,7 @@ export default function Home() {
               onSuccess={async (resp) => {
                 setError('');
                 try {
-                  const user = await handleGoogleLogin(resp.credential);
-                  const ownedOrg = user.organizations?.find(org => org.owner_email?.toLowerCase() === user.email.toLowerCase());
-                  const firstOrg = ownedOrg || user.organizations?.[0];
-                  if (user.role !== 'developer' && firstOrg) {
-                    navigate(`/org/${firstOrg.id}`, { replace: true });
-                  }
+                  await handleGoogleLogin(resp.credential);
                 } catch {
                   setError('Sign-in failed. Try again.');
                 }

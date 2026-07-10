@@ -14,7 +14,7 @@ export default function Layout({ children }) {
   }, [location.pathname]);
 
   const orgBase = activeOrganizationId ? `/org/${activeOrganizationId}` : '/';
-  const logoTarget = isDeveloper ? '/' : orgBase;
+  const logoTarget = '/';
   const appName = activeOrganization?.name || 'Choir Songbook';
   const isDeveloperHome = isDeveloper && location.pathname === '/';
 
