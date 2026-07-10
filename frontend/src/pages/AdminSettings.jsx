@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Mail, Plus, Trash2, Edit2, Globe, Tag, Check, X, ShieldAlert, Building2 } from 'lucide-react';
+import { Mail, Plus, Trash2, Edit2, Globe, Tag, Check, X, ShieldAlert, Building2, AlertTriangle } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
+import { MAX_ORG_NAME, MAX_LANGUAGE_NAME, MAX_CATEGORY_NAME } from '../validation';
 
 export default function AdminSettings() {
   const {
@@ -28,6 +29,8 @@ export default function AdminSettings() {
   const [organizationError, setOrganizationError] = useState('');
   const [editingLanguage, setEditingLanguage] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [renameLanguageError, setRenameLanguageError] = useState('');
+  const [renameCategoryError, setRenameCategoryError] = useState('');
 
   const handleAddEmail = (e) => {
     e.preventDefault();
@@ -50,6 +53,10 @@ export default function AdminSettings() {
       setOrganizationError('Please enter an organization name.');
       return;
     }
+    if (name.length > MAX_ORG_NAME) {
+      setOrganizationError(`Organization name must not exceed ${MAX_ORG_NAME} characters.`);
+      return;
+    }
     try {
       await createOrganization(name);
       setNewOrganizationName('');
@@ -59,14 +66,20 @@ export default function AdminSettings() {
   };
 
   const handleRenameLanguageSubmit = (oldName) => {
-    if (!editingLanguage || !editingLanguage.newName.trim()) return;
-    renameLanguage(oldName, editingLanguage.newName.trim());
+    const newName = editingLanguage?.newName?.trim();
+    if (!newName) { setRenameLanguageError('Language name must not be empty.'); return; }
+    if (newName.length > MAX_LANGUAGE_NAME) { setRenameLanguageError(`Language name must not exceed ${MAX_LANGUAGE_NAME} characters.`); return; }
+    setRenameLanguageError('');
+    renameLanguage(oldName, newName);
     setEditingLanguage(null);
   };
 
   const handleRenameCategorySubmit = (oldName) => {
-    if (!editingCategory || !editingCategory.newName.trim()) return;
-    renameCategory(oldName, editingCategory.newName.trim());
+    const newName = editingCategory?.newName?.trim();
+    if (!newName) { setRenameCategoryError('Category name must not be empty.'); return; }
+    if (newName.length > MAX_CATEGORY_NAME) { setRenameCategoryError(`Category name must not exceed ${MAX_CATEGORY_NAME} characters.`); return; }
+    setRenameCategoryError('');
+    renameCategory(oldName, newName);
     setEditingCategory(null);
   };
 
@@ -80,6 +93,8 @@ export default function AdminSettings() {
     name,
     isEditing,
     editValue,
+    editError,
+    maxLength,
     onEdit,
     onEditChange,
     onEditSubmit,
@@ -91,22 +106,30 @@ export default function AdminSettings() {
   }) => (
     <RowShell>
       {isEditing ? (
-        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-          <input
-            type="text"
-            value={editValue}
-            onChange={onEditChange}
-            className={`min-w-0 flex-1 rounded-2xl bg-gray-950 px-4 py-3 text-sm text-white focus:outline-none border ${inputBorderClass}`}
-            autoFocus
-          />
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
-            <button onClick={onEditSubmit} className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl px-4 text-sm font-semibold text-white ${saveButtonClass}`}>
-              <Check className="w-4 h-4" /> Save
-            </button>
-            <button onClick={onEditCancel} className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl bg-gray-800 px-4 text-sm font-semibold text-gray-300 hover:text-white">
-              <X className="w-4 h-4" /> Cancel
-            </button>
+        <div className="flex w-full flex-col gap-2">
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
+            <input
+              type="text"
+              value={editValue}
+              maxLength={maxLength}
+              onChange={onEditChange}
+              className={`min-w-0 flex-1 rounded-2xl bg-gray-950 px-4 py-3 text-sm text-white focus:outline-none border ${editError ? 'border-red-500/50' : inputBorderClass}`}
+              autoFocus
+            />
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
+              <button onClick={onEditSubmit} className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl px-4 text-sm font-semibold text-white ${saveButtonClass}`}>
+                <Check className="w-4 h-4" /> Save
+              </button>
+              <button onClick={onEditCancel} className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl bg-gray-800 px-4 text-sm font-semibold text-gray-300 hover:text-white">
+                <X className="w-4 h-4" /> Cancel
+              </button>
+            </div>
           </div>
+          {editError && (
+            <span className="text-xs font-semibold text-red-400 flex items-center gap-1">
+              <AlertTriangle className="w-3.5 h-3.5" /> {editError}
+            </span>
+          )}
         </div>
       ) : (
         <>
@@ -188,6 +211,7 @@ export default function AdminSettings() {
               type="text"
               placeholder="Create another organization"
               value={newOrganizationName}
+              maxLength={MAX_ORG_NAME}
               onChange={(e) => { setNewOrganizationName(e.target.value); setOrganizationError(''); }}
               className="flex-1 px-4 py-3 bg-gray-950 border border-[#1f212d] focus:border-violet-500 rounded-2xl text-sm placeholder-gray-600 focus:outline-none transition-colors"
             />
@@ -278,10 +302,12 @@ export default function AdminSettings() {
           name={lang}
           isEditing={editingLanguage?.oldName === lang}
           editValue={editingLanguage?.newName ?? lang}
-          onEdit={() => setEditingLanguage({ oldName: lang, newName: lang })}
-          onEditChange={(e) => setEditingLanguage((current) => ({ ...(current || { oldName: lang }), newName: e.target.value }))}
+          editError={editingLanguage?.oldName === lang ? renameLanguageError : ''}
+          maxLength={MAX_LANGUAGE_NAME}
+          onEdit={() => { setEditingLanguage({ oldName: lang, newName: lang }); setRenameLanguageError(''); }}
+          onEditChange={(e) => { setEditingLanguage((current) => ({ ...(current || { oldName: lang }), newName: e.target.value })); setRenameLanguageError(''); }}
           onEditSubmit={() => handleRenameLanguageSubmit(lang)}
-          onEditCancel={() => setEditingLanguage(null)}
+          onEditCancel={() => { setEditingLanguage(null); setRenameLanguageError(''); }}
           onDelete={() => deleteLanguage(lang)}
           accentClass="text-violet-300"
           saveButtonClass="bg-violet-600 hover:bg-violet-500"
@@ -314,10 +340,12 @@ export default function AdminSettings() {
               name={cat}
               isEditing={editingCategory?.oldName === cat}
               editValue={editingCategory?.newName ?? cat}
-              onEdit={() => setEditingCategory({ oldName: cat, newName: cat })}
-              onEditChange={(e) => setEditingCategory((current) => ({ ...(current || { oldName: cat }), newName: e.target.value }))}
+              editError={editingCategory?.oldName === cat ? renameCategoryError : ''}
+              maxLength={MAX_CATEGORY_NAME}
+              onEdit={() => { setEditingCategory({ oldName: cat, newName: cat }); setRenameCategoryError(''); }}
+              onEditChange={(e) => { setEditingCategory((current) => ({ ...(current || { oldName: cat }), newName: e.target.value })); setRenameCategoryError(''); }}
               onEditSubmit={() => handleRenameCategorySubmit(cat)}
-              onEditCancel={() => setEditingCategory(null)}
+              onEditCancel={() => { setEditingCategory(null); setRenameCategoryError(''); }}
               onDelete={() => deleteCategory(cat)}
               accentClass="text-indigo-300"
               saveButtonClass="bg-emerald-600 hover:bg-emerald-500"

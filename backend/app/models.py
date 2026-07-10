@@ -29,7 +29,7 @@ class Category(Base):
     
     id = Column(String(36), primary_key=True, default=generate_uuid)
     organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
-    name = Column(String(100), nullable=False, index=True)
+    name = Column(String(50), nullable=False, index=True)
     
     # Relationship back to songs
     organization = relationship("Organization", back_populates="categories")
@@ -41,7 +41,7 @@ class Language(Base):
     
     id = Column(String(36), primary_key=True, default=generate_uuid)
     organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
-    name = Column(String(100), nullable=False, index=True)
+    name = Column(String(50), nullable=False, index=True)
     
     # Relationship back to songs
     organization = relationship("Organization", back_populates="languages")
@@ -51,7 +51,7 @@ class Organization(Base):
     __tablename__ = "organizations"
     
     id = Column(String(36), primary_key=True, default=generate_uuid)
-    name = Column(String(255), nullable=False, index=True)
+    name = Column(String(100), nullable=False, index=True)
     owner_email = Column(String(255), nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     
@@ -77,10 +77,10 @@ class Song(Base):
     id = Column(String(36), primary_key=True, default=generate_uuid)
     organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
     number = Column(Integer, nullable=False, index=True)
-    title = Column(String(255), nullable=False, index=True)
+    title = Column(String(200), nullable=False, index=True)
     lyrics = Column(Text, nullable=False)
     transliteration = Column(Text, nullable=True)
-    audio_url = Column(String(1024), nullable=True)
+    audio_url = Column(String(500), nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -1,10 +1,19 @@
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, Field, EmailStr, model_validator
+from pydantic import BaseModel, ConfigDict, Field, EmailStr, field_validator, model_validator
 from typing import Optional, List
+from app.validation import (
+    MAX_ORG_NAME, MAX_SONG_TITLE, MAX_CATEGORY_NAME,
+    MAX_LANGUAGE_NAME, MAX_LYRICS, MAX_YOUTUBE_URL,
+)
 
 # --- Organization Schemas ---
 class OrganizationBase(BaseModel):
-    name: str = Field(..., min_length=1, max_length=255)
+    name: str = Field(..., min_length=1, max_length=MAX_ORG_NAME)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def strip_name(cls, v: str) -> str:
+        return v.strip() if isinstance(v, str) else v
 
 class OrganizationCreate(OrganizationBase):
     pass
@@ -38,7 +47,12 @@ class OrganizationPublicResponse(OrganizationBase):
 
 # --- Category Schemas ---
 class CategoryBase(BaseModel):
-    name: str = Field(..., min_length=1, max_length=100)
+    name: str = Field(..., min_length=1, max_length=MAX_CATEGORY_NAME)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def strip_name(cls, v: str) -> str:
+        return v.strip() if isinstance(v, str) else v
 
 class CategoryCreate(CategoryBase):
     pass
@@ -50,7 +64,12 @@ class CategoryResponse(CategoryBase):
 
 # --- Language Schemas ---
 class LanguageBase(BaseModel):
-    name: str = Field(..., min_length=1, max_length=100)
+    name: str = Field(..., min_length=1, max_length=MAX_LANGUAGE_NAME)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def strip_name(cls, v: str) -> str:
+        return v.strip() if isinstance(v, str) else v
 
 class LanguageCreate(LanguageBase):
     pass
@@ -62,22 +81,51 @@ class LanguageResponse(LanguageBase):
 
 # --- Song Schemas ---
 class SongBase(BaseModel):
-    title: str = Field(..., min_length=1, max_length=255)
-    lyrics: str = Field(..., min_length=1)
+    title: str = Field(..., min_length=1, max_length=MAX_SONG_TITLE)
+    lyrics: str = Field(..., min_length=1, max_length=MAX_LYRICS)
     transliteration: Optional[str] = None
-    audio_url: Optional[str] = None
+    audio_url: Optional[str] = Field(None, max_length=MAX_YOUTUBE_URL)
+
+    @field_validator("title", mode="before")
+    @classmethod
+    def strip_title(cls, v: str) -> str:
+        return v.strip() if isinstance(v, str) else v
+
+    @field_validator("audio_url", mode="before")
+    @classmethod
+    def strip_audio_url(cls, v):
+        if isinstance(v, str):
+            v = v.strip()
+            return v if v else None
+        return v
 
 class SongCreate(SongBase):
     categories: List[str] = []
     languages: List[str] = []
 
 class SongUpdate(BaseModel):
-    title: Optional[str] = None
-    lyrics: Optional[str] = None
+    title: Optional[str] = Field(None, min_length=1, max_length=MAX_SONG_TITLE)
+    lyrics: Optional[str] = Field(None, min_length=1, max_length=MAX_LYRICS)
     transliteration: Optional[str] = None
-    audio_url: Optional[str] = None
+    audio_url: Optional[str] = Field(None, max_length=MAX_YOUTUBE_URL)
     categories: Optional[List[str]] = None
     languages: Optional[List[str]] = None
+
+    @field_validator("title", mode="before")
+    @classmethod
+    def strip_title(cls, v):
+        if isinstance(v, str):
+            v = v.strip()
+            return v if v else None
+        return v
+
+    @field_validator("audio_url", mode="before")
+    @classmethod
+    def strip_audio_url(cls, v):
+        if isinstance(v, str):
+            v = v.strip()
+            return v if v else None
+        return v
 
 class SongResponse(SongBase):
     id: str
@@ -93,18 +141,13 @@ class SongResponse(SongBase):
     @model_validator(mode="before")
     @classmethod
     def convert_relations(cls, data):
-        # Check if data is an SQLAlchemy model instance (has categories/languages relation attributes)
         if not isinstance(data, dict):
-            # Safe extraction of category names
             cats = []
             if hasattr(data, "categories") and data.categories:
                 cats = [c.name for c in data.categories]
-                
-            # Safe extraction of language names
             langs = []
             if hasattr(data, "languages") and data.languages:
                 langs = [l.name for l in data.languages]
-                
             return {
                 "id": data.id,
                 "organization_id": data.organization_id,
@@ -116,7 +159,7 @@ class SongResponse(SongBase):
                 "categories": cats,
                 "languages": langs,
                 "created_at": data.created_at,
-                "updated_at": data.updated_at
+                "updated_at": data.updated_at,
             }
         return data
 

@@ -3,10 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Save, Trash2, Plus, X, Globe, Tag, Video, ArrowLeft, AlertTriangle, FileText } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
+import {
+  MAX_SONG_TITLE,
+  MAX_CATEGORY_NAME,
+  MAX_LANGUAGE_NAME,
+  MAX_LYRICS,
+  MAX_YOUTUBE_URL,
+} from '../validation';
 
 // ─── Parse existing lyrics string into sections ─────────────────────────────
-// Format stored: "=== Heading ===\nlyrics\n\n=== Heading2 ===\nlyrics2"
-// If no section markers found, treat whole string as first section.
 function parseLyricSections(rawLyrics) {
   if (!rawLyrics) return [{ heading: '', text: '' }];
   const sectionRegex = /^===\s*(.+?)\s*===/m;
@@ -14,7 +19,6 @@ function parseLyricSections(rawLyrics) {
     return [{ heading: '', text: rawLyrics }];
   }
   const parts = rawLyrics.split(/\n*===\s*(.+?)\s*===\n*/);
-  // parts: ['', 'heading1', 'text1', 'heading2', 'text2', ...]
   const sections = [];
   for (let i = 1; i < parts.length; i += 2) {
     sections.push({ heading: parts[i] || '', text: (parts[i + 1] || '').trim() });
@@ -44,7 +48,7 @@ export default function SongForm() {
     activeOrganizationId,
     addSong,
     updateSong,
-    deleteSong
+    deleteSong,
   } = useSongbook();
 
   const songToEdit = isEditMode ? songs.find(s => s.id === id) : null;
@@ -52,8 +56,8 @@ export default function SongForm() {
   const { register, handleSubmit, formState: { errors } } = useForm({
     defaultValues: {
       title: songToEdit?.title || '',
-      audioUrl: songToEdit?.audioUrl || ''
-    }
+      audioUrl: songToEdit?.audio_url || '',
+    },
   });
 
   // Tags
@@ -61,25 +65,44 @@ export default function SongForm() {
   const [songCategories, setSongCategories] = useState(() => songToEdit ? songToEdit.categories || [] : []);
   const [newLanguageInput, setNewLanguageInput] = useState('');
   const [newCategoryInput, setNewCategoryInput] = useState('');
+  const [languageError, setLanguageError] = useState('');
+  const [categoryError, setCategoryError] = useState('');
   const [showLanguageSuggestions, setShowLanguageSuggestions] = useState(false);
   const [showCategorySuggestions, setShowCategorySuggestions] = useState(false);
 
   // Multi-section lyrics
   const [lyricSections, setLyricSections] = useState(() => parseLyricSections(songToEdit?.lyrics));
   const [activeLyricTab, setActiveLyricTab] = useState(0);
-
+  const [lyricsError, setLyricsError] = useState('');
 
   // Delete confirm
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Total serialized lyrics length (across all sections)
+  const totalLyricsLength = serializeLyricSections(lyricSections).length;
+
   // ─── Submit ─────────────────────────────────────────────────────────────────
   const onSubmit = async (data) => {
+    const serializedLyrics = serializeLyricSections(lyricSections);
+
+    // Lyrics validation
+    if (lyricSections.every(s => !s.text.trim())) {
+      setLyricsError('Lyrics are required.');
+      return;
+    }
+    if (serializedLyrics.length > MAX_LYRICS) {
+      setLyricsError(`Lyrics must not exceed ${MAX_LYRICS.toLocaleString()} characters.`);
+      return;
+    }
+    setLyricsError('');
+
     const payload = {
-      ...data,
-      lyrics: serializeLyricSections(lyricSections),
+      title: data.title.trim(),
+      audio_url: data.audioUrl ? data.audioUrl.trim() : '',
+      lyrics: serializedLyrics,
       transliteration: '',
       languages: songLanguages.length > 0 ? songLanguages : ['English'],
-      categories: songCategories
+      categories: songCategories,
     };
 
     try {
@@ -105,14 +128,26 @@ export default function SongForm() {
   // ─── Tag helpers ─────────────────────────────────────────────────────────
   const addLanguage = (lang) => {
     const f = lang.trim();
-    if (f && !songLanguages.includes(f)) setSongLanguages(p => [...p, f]);
+    if (!f) { setNewLanguageInput(''); setShowLanguageSuggestions(false); return; }
+    if (f.length > MAX_LANGUAGE_NAME) {
+      setLanguageError(`Language name must not exceed ${MAX_LANGUAGE_NAME} characters.`);
+      return;
+    }
+    setLanguageError('');
+    if (!songLanguages.includes(f)) setSongLanguages(p => [...p, f]);
     setNewLanguageInput(''); setShowLanguageSuggestions(false);
   };
   const removeLanguage = (lang) => setSongLanguages(p => p.filter(l => l !== lang));
 
   const addCategory = (cat) => {
     const f = cat.trim();
-    if (f && !songCategories.includes(f)) setSongCategories(p => [...p, f]);
+    if (!f) { setNewCategoryInput(''); setShowCategorySuggestions(false); return; }
+    if (f.length > MAX_CATEGORY_NAME) {
+      setCategoryError(`Category name must not exceed ${MAX_CATEGORY_NAME} characters.`);
+      return;
+    }
+    setCategoryError('');
+    if (!songCategories.includes(f)) setSongCategories(p => [...p, f]);
     setNewCategoryInput(''); setShowCategorySuggestions(false);
   };
   const removeCategory = (cat) => setSongCategories(p => p.filter(c => c !== cat));
@@ -137,8 +172,12 @@ export default function SongForm() {
   };
 
   const updateSection = (idx, field, value) => {
+    if (field === 'text' && value.length > MAX_LYRICS) return;
     setLyricSections(p => p.map((s, i) => i === idx ? { ...s, [field]: value } : s));
+    if (field === 'text') setLyricsError('');
   };
+
+  const lyricsOverLimit = totalLyricsLength > MAX_LYRICS;
 
   return (
     <div className="space-y-6">
@@ -164,7 +203,12 @@ export default function SongForm() {
           <input
             type="text"
             placeholder="e.g. O Come All Ye Faithful"
-            {...register('title', { required: 'Title is required' })}
+            maxLength={MAX_SONG_TITLE}
+            {...register('title', {
+              required: 'Title is required.',
+              maxLength: { value: MAX_SONG_TITLE, message: `Title must not exceed ${MAX_SONG_TITLE} characters.` },
+              validate: v => v.trim().length > 0 || 'Title must not be empty.',
+            })}
             className={`w-full px-4 py-3 bg-[#111219] border ${errors.title ? 'border-red-500/50' : 'border-[#1f212d] focus:border-violet-500'} rounded-2xl text-sm placeholder-gray-600 focus:outline-none transition-colors shadow-inner`}
           />
           {errors.title && (
@@ -185,27 +229,34 @@ export default function SongForm() {
             {songLanguages.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {songLanguages.map(lang => (
-                <span key={lang} className="inline-flex items-center gap-1 text-xs font-bold text-violet-400 bg-violet-950/30 border border-violet-900/40 px-2 py-0.5 rounded-full">
-                  {lang}
-                  <button type="button" onClick={() => removeLanguage(lang)} className="hover:text-red-400"><X className="w-3 h-3" /></button>
-                </span>
-              ))}
-            </div>
+                  <span key={lang} className="inline-flex items-center gap-1 text-xs font-bold text-violet-400 bg-violet-950/30 border border-violet-900/40 px-2 py-0.5 rounded-full">
+                    {lang}
+                    <button type="button" onClick={() => removeLanguage(lang)} className="hover:text-red-400"><X className="w-3 h-3" /></button>
+                  </span>
+                ))}
+              </div>
             )}
             <div className="flex gap-2">
               <input
                 type="text"
                 placeholder="Type or select..."
                 value={newLanguageInput}
-                onChange={(e) => { setNewLanguageInput(e.target.value); setShowLanguageSuggestions(true); }}
+                maxLength={MAX_LANGUAGE_NAME}
+                onChange={(e) => { setNewLanguageInput(e.target.value); setShowLanguageSuggestions(true); setLanguageError(''); }}
                 onFocus={() => setShowLanguageSuggestions(true)}
                 onBlur={() => setShowLanguageSuggestions(false)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addLanguage(newLanguageInput); } }}
                 className="flex-1 px-3 py-2.5 bg-[#111219] border border-[#1f212d] focus:border-violet-500 rounded-xl text-sm placeholder-gray-600 focus:outline-none transition-colors"
               />
               <button type="button" onClick={() => addLanguage(newLanguageInput)} className="px-3 bg-violet-600 hover:bg-violet-500 text-white rounded-xl flex items-center justify-center transition-colors">
                 <Plus className="w-4 h-4" />
               </button>
             </div>
+            {languageError && (
+              <span className="text-xs font-semibold text-red-400 flex items-center gap-1">
+                <AlertTriangle className="w-3.5 h-3.5" /> {languageError}
+              </span>
+            )}
             {showLanguageSuggestions && languageSuggestions.length > 0 && (
               <ul className="absolute z-30 left-0 right-0 mt-1 bg-[#161722] border border-[#1f212d] rounded-xl shadow-xl max-h-36 overflow-y-auto divide-y divide-gray-800/50">
                 {languageSuggestions.map(lang => (
@@ -223,27 +274,34 @@ export default function SongForm() {
             {songCategories.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {songCategories.map(cat => (
-                <span key={cat} className="inline-flex items-center gap-1 text-xs font-bold text-indigo-400 bg-indigo-950/30 border border-indigo-900/40 px-2 py-0.5 rounded-full">
-                  {cat}
-                  <button type="button" onClick={() => removeCategory(cat)} className="hover:text-red-400"><X className="w-3 h-3" /></button>
-                </span>
-              ))}
-            </div>
+                  <span key={cat} className="inline-flex items-center gap-1 text-xs font-bold text-indigo-400 bg-indigo-950/30 border border-indigo-900/40 px-2 py-0.5 rounded-full">
+                    {cat}
+                    <button type="button" onClick={() => removeCategory(cat)} className="hover:text-red-400"><X className="w-3 h-3" /></button>
+                  </span>
+                ))}
+              </div>
             )}
             <div className="flex gap-2">
               <input
                 type="text"
                 placeholder="Type or select..."
                 value={newCategoryInput}
-                onChange={(e) => { setNewCategoryInput(e.target.value); setShowCategorySuggestions(true); }}
+                maxLength={MAX_CATEGORY_NAME}
+                onChange={(e) => { setNewCategoryInput(e.target.value); setShowCategorySuggestions(true); setCategoryError(''); }}
                 onFocus={() => setShowCategorySuggestions(true)}
                 onBlur={() => setShowCategorySuggestions(false)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCategory(newCategoryInput); } }}
                 className="flex-1 px-3 py-2.5 bg-[#111219] border border-[#1f212d] focus:border-violet-500 rounded-xl text-sm placeholder-gray-600 focus:outline-none transition-colors"
               />
               <button type="button" onClick={() => addCategory(newCategoryInput)} className="px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center transition-colors">
                 <Plus className="w-4 h-4" />
               </button>
             </div>
+            {categoryError && (
+              <span className="text-xs font-semibold text-red-400 flex items-center gap-1">
+                <AlertTriangle className="w-3.5 h-3.5" /> {categoryError}
+              </span>
+            )}
             {showCategorySuggestions && categorySuggestions.length > 0 && (
               <ul className="absolute z-30 left-0 right-0 mt-1 bg-[#161722] border border-[#1f212d] rounded-xl shadow-xl max-h-36 overflow-y-auto divide-y divide-gray-800/50">
                 {categorySuggestions.map(cat => (
@@ -288,7 +346,6 @@ export default function SongForm() {
                   )}
                 </div>
               ))}
-              {/* Add section button */}
               <button
                 type="button"
                 onClick={addLyricSection}
@@ -303,7 +360,7 @@ export default function SongForm() {
           {/* Section heading input */}
           <input
             type="text"
-            placeholder={`Section heading (e.g. English, Malayalam...)`}
+            placeholder="Section heading (e.g. English, Malayalam...)"
             value={lyricSections[activeLyricTab]?.heading || ''}
             onChange={e => updateSection(activeLyricTab, 'heading', e.target.value)}
             className="w-full px-3 py-2 bg-[#111219] border border-[#1f212d] focus:border-violet-500/50 rounded-xl text-xs font-semibold placeholder-gray-600 focus:outline-none transition-colors"
@@ -315,13 +372,23 @@ export default function SongForm() {
             rows={12}
             value={lyricSections[activeLyricTab]?.text || ''}
             onChange={e => updateSection(activeLyricTab, 'text', e.target.value)}
-            className="w-full px-4 py-3 bg-[#111219] border border-[#1f212d] focus:border-violet-500 rounded-2xl text-sm font-serif placeholder-gray-600 focus:outline-none transition-colors shadow-inner"
+            className={`w-full px-4 py-3 bg-[#111219] border ${lyricsOverLimit ? 'border-red-500/50' : 'border-[#1f212d] focus:border-violet-500'} rounded-2xl text-sm font-serif placeholder-gray-600 focus:outline-none transition-colors shadow-inner`}
           />
-          {lyricSections.every(s => !s.text.trim()) && (
-            <span className="text-xs font-semibold text-red-400 flex items-center gap-1">
-              <AlertTriangle className="w-3.5 h-3.5" /> Lyrics are required
+
+          {/* Character counter */}
+          <div className="flex items-center justify-between">
+            <div>
+              {(lyricsError || lyricSections.every(s => !s.text.trim())) && (
+                <span className="text-xs font-semibold text-red-400 flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  {lyricsError || 'Lyrics are required.'}
+                </span>
+              )}
+            </div>
+            <span className={`text-xs font-mono tabular-nums ${lyricsOverLimit ? 'text-red-400 font-semibold' : 'text-gray-600'}`}>
+              Characters: {totalLyricsLength.toLocaleString()} / {MAX_LYRICS.toLocaleString()}
             </span>
-          )}
+          </div>
         </div>
 
         {/* YouTube URL */}
@@ -332,18 +399,27 @@ export default function SongForm() {
           <input
             type="url"
             placeholder="https://www.youtube.com/watch?v=..."
-            {...register('audioUrl')}
-            className="w-full px-4 py-3 bg-[#111219] border border-[#1f212d] focus:border-violet-500 rounded-2xl text-sm placeholder-gray-600 focus:outline-none transition-colors shadow-inner"
+            maxLength={MAX_YOUTUBE_URL}
+            {...register('audioUrl', {
+              maxLength: { value: MAX_YOUTUBE_URL, message: `URL must not exceed ${MAX_YOUTUBE_URL} characters.` },
+            })}
+            className={`w-full px-4 py-3 bg-[#111219] border ${errors.audioUrl ? 'border-red-500/50' : 'border-[#1f212d] focus:border-violet-500'} rounded-2xl text-sm placeholder-gray-600 focus:outline-none transition-colors shadow-inner`}
           />
-          <p className="text-xs text-gray-500">
-            Paste a YouTube video link to show it below the lyrics.
-          </p>
+          {errors.audioUrl ? (
+            <span className="text-xs font-semibold text-red-400 flex items-center gap-1">
+              <AlertTriangle className="w-3.5 h-3.5" /> {errors.audioUrl.message}
+            </span>
+          ) : (
+            <p className="text-xs text-gray-500">Paste a YouTube video link to show it below the lyrics.</p>
+          )}
         </div>
+
         {/* Action Buttons */}
         <div className="flex flex-col gap-3 pt-4 border-t border-[#1f212d]/60">
           <button
             type="submit"
-            className="w-full py-3.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-violet-600/10 transition-all cursor-pointer disabled:opacity-50"
+            disabled={lyricsOverLimit}
+            className="w-full py-3.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-violet-600/10 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save className="w-4 h-4" /><span>{isEditMode ? 'Update Song Details' : 'Publish Song'}</span>
           </button>
