@@ -110,7 +110,11 @@ export const SongbookProvider = ({ children }) => {
   const switchOrganization = useCallback((organizationId) => {
     localStorage.setItem('cs_active_org_id', organizationId);
     setActiveOrganizationId(organizationId);
-    queryClient.invalidateQueries();
+    queryClient.removeQueries({ queryKey: ['songs'] });
+    queryClient.removeQueries({ queryKey: ['categories'] });
+    queryClient.removeQueries({ queryKey: ['languages'] });
+    queryClient.removeQueries({ queryKey: ['favourites'] });
+    queryClient.removeQueries({ queryKey: ['adminEmails'] });
   }, [queryClient]);
   
   // Songs query
@@ -175,20 +179,18 @@ export const SongbookProvider = ({ children }) => {
   const handleGoogleLogin = async (idToken) => {
     try {
       const data = await apiService.auth.loginGoogle(idToken);
-      queryClient.clear();
       localStorage.setItem('cs_auth_token', data.access_token);
       localStorage.setItem('cs_user', JSON.stringify(data.user));
       const ownedOrg = data.user.organizations?.find(org => org.owner_email?.toLowerCase() === data.user.email.toLowerCase());
       const firstOrgId = ownedOrg?.id || data.user.organizations?.[0]?.id || '';
-      setCurrentUser(data.user);
       if (firstOrgId) {
         localStorage.setItem('cs_active_org_id', firstOrgId);
-        setActiveOrganizationId(firstOrgId);
       } else {
         localStorage.removeItem('cs_active_org_id');
-        setActiveOrganizationId('');
       }
-      queryClient.invalidateQueries();
+      queryClient.clear();
+      setCurrentUser(data.user);
+      setActiveOrganizationId(firstOrgId);
       return data.user;
     } catch (e) {
       console.error('Google authentication failed', e);

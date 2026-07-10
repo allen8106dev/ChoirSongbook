@@ -1,8 +1,40 @@
-import { useLayoutEffect } from 'react';
+import { useLayoutEffect, useState, useRef, useEffect } from 'react';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Music, PlusCircle, Settings, Star, BookOpen, Building2 } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 import AuthDropdown from './AuthDropdown';
+
+function MobileOrgTitle({ name }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
+  }, [open]);
+
+  if (!name) return null;
+
+  return (
+    <div className="md:hidden relative mb-3" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="max-w-full flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-gray-200 transition-colors"
+      >
+        <span className="truncate max-w-[16rem]">{name}</span>
+        <span className="shrink-0 text-gray-600">›</span>
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1.5 z-50 rounded-xl border border-[#1f212d] bg-[#111219] px-3 py-2 text-xs font-semibold text-gray-200 shadow-xl max-w-[min(20rem,calc(100vw-2rem))] break-words">
+          {name}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Layout({ children }) {
   const { organizations, activeOrganizationId, switchOrganization, activeOrganization, isActiveOrgAdmin, isActiveOrgMember, isDeveloper } = useSongbook();
@@ -106,23 +138,13 @@ export default function Layout({ children }) {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shrink-0">
               <Music className="w-4 h-4 text-white" />
             </div>
-
-            <span className="font-bold text-base tracking-tight text-white">
-              {appName}
-            </span>
+            <span className="font-bold text-base tracking-tight text-white">Choir Songbook</span>
           </Link>
-
-          <div className="flex items-center gap-2">
-            {activeOrganization && (
-              <span className="max-w-[9rem] truncate text-xs font-semibold text-gray-400">
-                {activeOrganization.name}
-              </span>
-            )}
-            <AuthDropdown />
-          </div>
+          <AuthDropdown />
         </header>
 
         <main className="flex-1 p-3 sm:p-5 md:p-10 max-w-4xl mx-auto w-full">
+          <MobileOrgTitle name={activeOrganization?.name} />
           {children}
         </main>
       </div>
