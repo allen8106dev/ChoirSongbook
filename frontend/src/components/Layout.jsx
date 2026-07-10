@@ -1,40 +1,8 @@
-import { useLayoutEffect, useState, useRef, useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Music, PlusCircle, Settings, Star, BookOpen, Building2 } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 import AuthDropdown from './AuthDropdown';
-
-function MobileOrgTitle({ name }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('pointerdown', handler);
-    return () => document.removeEventListener('pointerdown', handler);
-  }, [open]);
-
-  if (!name) return null;
-
-  return (
-    <div className="md:hidden relative mb-3" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen(v => !v)}
-        className="max-w-full flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-gray-200 transition-colors"
-      >
-        <span className="truncate max-w-[16rem]">{name}</span>
-        <span className="shrink-0 text-gray-600">›</span>
-      </button>
-      {open && (
-        <div className="absolute left-0 top-full mt-1.5 z-50 rounded-xl border border-[#1f212d] bg-[#111219] px-3 py-2 text-xs font-semibold text-gray-200 shadow-xl max-w-[min(20rem,calc(100vw-2rem))] break-words">
-          {name}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function Layout({ children }) {
   const { organizations, activeOrganizationId, switchOrganization, activeOrganization, isActiveOrgAdmin, isActiveOrgMember, isDeveloper } = useSongbook();
@@ -51,7 +19,7 @@ export default function Layout({ children }) {
   const isDeveloperHome = isDeveloper && location.pathname === '/';
 
   const navItems = [
-    ...(!isDeveloperHome ? [{ to: orgBase, label: activeOrganization?.name || 'Home', icon: BookOpen, exact: true }] : []),
+    ...(!isDeveloperHome ? [{ to: orgBase, label: 'Songbook', icon: BookOpen, exact: true }] : []),
     ...(isActiveOrgMember && !isDeveloperHome && activeOrganizationId
       ? [{ to: `${orgBase}/admin/add`, label: 'Add Song', icon: PlusCircle }]
       : []),
@@ -144,7 +112,6 @@ export default function Layout({ children }) {
         </header>
 
         <main className="flex-1 p-3 sm:p-5 md:p-10 max-w-4xl mx-auto w-full">
-          <MobileOrgTitle name={activeOrganization?.name} />
           {children}
         </main>
       </div>

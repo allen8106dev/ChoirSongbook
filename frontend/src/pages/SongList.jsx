@@ -4,6 +4,35 @@ import { Search, Globe, Tag, ChevronRight, X, Video, FileDown, SlidersHorizontal
 import { useSongbook } from '../context/SongbookContext';
 import { API_BASE_URL } from '../services/api';
 
+function OrgNameTitle({ name }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
+  }, [open]);
+
+  return (
+    <div className="relative min-w-0" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="block w-full text-left min-w-0"
+      >
+        <h2 className="text-3xl font-extrabold tracking-tight text-white truncate">{name}</h2>
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1.5 z-50 rounded-xl border border-[#1f212d] bg-[#111219] px-3 py-2 text-sm font-bold text-white shadow-xl max-w-[min(24rem,calc(100vw-2rem))] break-words">
+          {name}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SongTagGroup({ label, items, toneClassName }) {
   if (!items || items.length === 0) return null;
 
@@ -193,7 +222,7 @@ export default function SongList() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-3xl font-extrabold tracking-tight text-white">{activeOrganization?.name || 'Songbook'}</h2>
+          <OrgNameTitle name={activeOrganization?.name || 'Songbook'} />
           <p className="text-sm text-gray-400 mt-0.5">Search and browse lyrics and videos</p>
         </div>
         <button
