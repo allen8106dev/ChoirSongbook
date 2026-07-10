@@ -139,7 +139,7 @@ function getYouTubeEmbedUrl(rawUrl) {
 export default function SongDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { songs, currentUser, isLoading, toggleFavourite, isFavourite, activeOrganizationId, isActiveOrgAdmin } = useSongbook();
+  const { songs, currentUser, isLoading, toggleFavourite, isFavourite, activeOrganizationId, isActiveOrgMember } = useSongbook();
 
   const song = songs.find(s => s.id === id);
 
@@ -313,7 +313,7 @@ export default function SongDetail() {
             <ArrowLeft className="w-4 h-4" /><span>Back</span>
           </button>
 
-          {isActiveOrgAdmin && (
+          {isActiveOrgMember && (
             <button
               onClick={() => navigate(`/org/${activeOrganizationId}/admin/edit/${song.id}`)}
               className="p-2 bg-[#111219] border border-[#1f212d] hover:border-violet-500/40 rounded-xl text-gray-300 hover:text-violet-400 transition-all flex items-center justify-center"

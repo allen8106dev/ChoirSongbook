@@ -19,6 +19,14 @@ const OrgAdminRoute = ({ children }) => {
   return children;
 };
 
+const OrgSongEditorRoute = ({ children }) => {
+  const { isActiveOrgMember } = useSongbook();
+  if (!isActiveOrgMember) {
+    return <Navigate to="/" replace />;
+  }
+  return children;
+};
+
 function OrganizationScope({ children }) {
   const { organizationId } = useParams();
   const { activeOrganizationId, switchOrganization } = useSongbook();
@@ -59,9 +67,9 @@ function AppRoutes() {
           path="/org/:organizationId/admin/add" 
           element={
             <OrganizationScope>
-              <OrgAdminRoute>
+              <OrgSongEditorRoute>
               <SongForm />
-              </OrgAdminRoute>
+              </OrgSongEditorRoute>
             </OrganizationScope>
           } 
         />
@@ -69,9 +77,9 @@ function AppRoutes() {
           path="/org/:organizationId/admin/edit/:id" 
           element={
             <OrganizationScope>
-              <OrgAdminRoute>
+              <OrgSongEditorRoute>
               <SongForm />
-              </OrgAdminRoute>
+              </OrgSongEditorRoute>
             </OrganizationScope>
           } 
         />

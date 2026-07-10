@@ -57,6 +57,10 @@ export const apiService = {
       const response = await api.post('/organizations', { name });
       return response.data;
     },
+    delete: async (id, confirmName) => {
+      const response = await api.delete(`/organizations/${id}`, { data: { confirm_name: confirmName } });
+      return response.data;
+    },
   },
 
   // --- Songs ---

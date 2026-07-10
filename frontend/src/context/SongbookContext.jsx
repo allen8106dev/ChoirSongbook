@@ -99,6 +99,14 @@ export const SongbookProvider = ({ children }) => {
     return activeOrganization.owner_email?.toLowerCase() === currentUser.email.toLowerCase();
   }, [activeOrganization, currentUser.email, currentUser.role]);
 
+  const isDeveloper = currentUser.role === 'developer';
+
+  const isActiveOrgMember = useMemo(() => {
+    if (!activeOrganization || !currentUser.email) return false;
+    if (isDeveloper || isActiveOrgAdmin) return true;
+    return activeOrganization.admins?.some(member => member.email?.toLowerCase() === currentUser.email.toLowerCase()) || false;
+  }, [activeOrganization, currentUser.email, isActiveOrgAdmin, isDeveloper]);
+
   const switchOrganization = useCallback((organizationId) => {
     localStorage.setItem('cs_active_org_id', organizationId);
     setActiveOrganizationId(organizationId);
@@ -167,14 +175,18 @@ export const SongbookProvider = ({ children }) => {
   const handleGoogleLogin = async (idToken) => {
     try {
       const data = await apiService.auth.loginGoogle(idToken);
+      queryClient.clear();
       localStorage.setItem('cs_auth_token', data.access_token);
       localStorage.setItem('cs_user', JSON.stringify(data.user));
-      setCurrentUser(data.user);
       const ownedOrg = data.user.organizations?.find(org => org.owner_email?.toLowerCase() === data.user.email.toLowerCase());
-      const firstOrgId = ownedOrg?.id || data.user.organizations?.[0]?.id || activeOrganizationId || '';
+      const firstOrgId = ownedOrg?.id || data.user.organizations?.[0]?.id || '';
+      setCurrentUser(data.user);
       if (firstOrgId) {
         localStorage.setItem('cs_active_org_id', firstOrgId);
         setActiveOrganizationId(firstOrgId);
+      } else {
+        localStorage.removeItem('cs_active_org_id');
+        setActiveOrganizationId('');
       }
       queryClient.invalidateQueries();
       return data.user;
@@ -284,6 +296,20 @@ export const SongbookProvider = ({ children }) => {
     }
   });
 
+  const deleteOrganizationMutation = useMutation({
+    mutationFn: ({ id, confirmName }) => apiService.organizations.delete(id, confirmName),
+    onSuccess: (_data, variables) => {
+      if (variables.id === activeOrganizationId) {
+        localStorage.removeItem('cs_active_org_id');
+        setActiveOrganizationId('');
+      }
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
+      queryClient.invalidateQueries({ queryKey: ['songs'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['languages'] });
+    }
+  });
+
   // Categories/Tags Administration mutations
   const renameCategoryMutation = useMutation({
     mutationFn: ({ oldName, newName }) => apiService.categories.rename(oldName, newName),
@@ -324,6 +350,7 @@ export const SongbookProvider = ({ children }) => {
   const deleteSong = (id) => deleteSongMutation.mutateAsync(id);
   const uploadSongAudio = (id, file) => uploadSongAudioMutation.mutateAsync({ id, file });
   const createOrganization = (name) => createOrganizationMutation.mutateAsync(name);
+  const deleteOrganization = (id, confirmName) => deleteOrganizationMutation.mutateAsync({ id, confirmName });
   
   const addAdminEmail = (email) => addAdminEmailMutation.mutate(email);
   const removeAdminEmail = (email) => removeAdminEmailMutation.mutate(email);
@@ -346,6 +373,8 @@ export const SongbookProvider = ({ children }) => {
         activeOrganization,
         activeOrganizationId,
         isActiveOrgAdmin,
+        isActiveOrgMember,
+        isDeveloper,
         adminEmails,
         isLoading,
         favourites,
@@ -355,6 +384,7 @@ export const SongbookProvider = ({ children }) => {
         handleLogout,
         switchOrganization,
         createOrganization,
+        deleteOrganization,
         addSong,
         updateSong,
         deleteSong,

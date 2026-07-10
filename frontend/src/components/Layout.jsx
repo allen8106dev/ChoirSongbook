@@ -5,7 +5,7 @@ import { useSongbook } from '../context/SongbookContext';
 import AuthDropdown from './AuthDropdown';
 
 export default function Layout({ children }) {
-  const { organizations, activeOrganizationId, switchOrganization, activeOrganization, isActiveOrgAdmin } = useSongbook();
+  const { organizations, activeOrganizationId, switchOrganization, activeOrganization, isActiveOrgAdmin, isActiveOrgMember, isDeveloper } = useSongbook();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -14,17 +14,19 @@ export default function Layout({ children }) {
   }, [location.pathname]);
 
   const orgBase = activeOrganizationId ? `/org/${activeOrganizationId}` : '/';
+  const logoTarget = isDeveloper ? '/' : orgBase;
   const appName = activeOrganization?.name || 'Choir Songbook';
+  const isDeveloperHome = isDeveloper && location.pathname === '/';
 
   const navItems = [
-    { to: orgBase, label: activeOrganization?.name || 'Home', icon: BookOpen, exact: true },
-    ...(isActiveOrgAdmin && activeOrganizationId
+    ...(!isDeveloperHome ? [{ to: orgBase, label: activeOrganization?.name || 'Home', icon: BookOpen, exact: true }] : []),
+    ...(isActiveOrgMember && !isDeveloperHome && activeOrganizationId
       ? [{ to: `${orgBase}/admin/add`, label: 'Add Song', icon: PlusCircle }]
       : []),
-    ...(isActiveOrgAdmin && activeOrganizationId
+    ...(isActiveOrgAdmin && !isDeveloper && activeOrganizationId
       ? [{ to: `${orgBase}/admin/settings`, label: 'Console', icon: Settings }]
       : []),
-    { to: '/profile', label: 'Favourites', icon: Star }
+    ...(!isDeveloper ? [{ to: '/profile', label: 'Favourites', icon: Star }] : [])
   ];
 
   const handleOrganizationChange = (organizationId) => {
@@ -38,7 +40,7 @@ export default function Layout({ children }) {
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex md:w-64 md:flex-col bg-[#111219] border-r border-[#1f212d] shrink-0">
         <div className="px-5 py-4 border-b border-[#1f212d] flex items-center justify-between gap-2">
-          <Link to={orgBase} className="flex items-center gap-3 group min-w-0">
+          <Link to={logoTarget} className="flex items-center gap-3 group min-w-0">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20 shrink-0">
               <Music className="w-4.5 h-4.5 text-white" />
             </div>
@@ -100,7 +102,7 @@ export default function Layout({ children }) {
 
         {/* Mobile Header */}
         <header className="md:hidden flex items-center justify-between px-4 py-3 bg-[#111219] border-b border-[#1f212d]">
-          <Link to={orgBase} className="flex items-center gap-2">
+          <Link to={logoTarget} className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shrink-0">
               <Music className="w-4 h-4 text-white" />
             </div>
@@ -126,6 +128,7 @@ export default function Layout({ children }) {
       </div>
 
       {/* Bottom Navigation */}
+      {navItems.length > 0 && (
       <nav className="md:hidden fixed left-0 right-0 bottom-0 h-16 bg-[#111219] border-t border-[#1f212d] flex items-center justify-around z-40">
         {navItems.map((item) => {
           const isActive = item.exact
@@ -148,6 +151,7 @@ export default function Layout({ children }) {
           );
         })}
       </nav>
+      )}
     </div>
   );
 }

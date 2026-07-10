@@ -162,6 +162,28 @@ def require_org_admin(
         detail="Operation restricted to admins for this organization."
     )
 
+def require_org_member(
+    current_user: Dict = Depends(get_current_user),
+    organization: models.Organization = Depends(get_active_organization),
+    db: Session = Depends(get_db)
+) -> Dict:
+    """
+    Enforces song editing access for organization owners, members, or developers.
+    """
+    if current_user["role"] == "developer" or crud.is_org_admin(db, current_user["email"], organization.id):
+        return {**current_user, "organization_id": organization.id}
+
+    if db.query(models.OrganizationAdmin).filter(
+        models.OrganizationAdmin.organization_id == organization.id,
+        models.OrganizationAdmin.email == current_user["email"].strip().lower()
+    ).first():
+        return {**current_user, "organization_id": organization.id}
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Operation restricted to members of this organization."
+    )
+
 def require_developer(current_user: Dict = Depends(get_current_user)) -> Dict:
     """
     Enforces that the authenticated user is a Developer.

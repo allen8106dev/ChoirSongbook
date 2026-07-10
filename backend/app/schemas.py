@@ -9,6 +9,9 @@ class OrganizationBase(BaseModel):
 class OrganizationCreate(OrganizationBase):
     pass
 
+class OrganizationDeleteConfirm(BaseModel):
+    confirm_name: str
+
 class OrganizationAdminCreate(BaseModel):
     email: EmailStr
 

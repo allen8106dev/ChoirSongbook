@@ -123,7 +123,7 @@ def read_song(
 def create_song(
     song_in: schemas.SongCreate, 
     db: Session = Depends(get_db),
-    current_user: dict = Depends(auth.require_org_admin)
+    current_user: dict = Depends(auth.require_org_member)
 ):
     """
     Add a new song to the songbook (restricted to Admin/Developer).
@@ -136,7 +136,7 @@ def update_song(
     id: str,
     song_in: schemas.SongUpdate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(auth.require_org_admin)
+    current_user: dict = Depends(auth.require_org_member)
 ):
     """
     Update an existing song (restricted to Admin/Developer).
@@ -155,7 +155,7 @@ def update_song(
 def delete_song(
     id: str,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(auth.require_org_admin)
+    current_user: dict = Depends(auth.require_org_member)
 ):
     """
     Delete a song from the songbook (restricted to Admin/Developer).
@@ -174,7 +174,7 @@ def upload_song_audio(
     id: str,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: dict = Depends(auth.require_org_admin)
+    current_user: dict = Depends(auth.require_org_member)
 ):
     """
     Upload reference audio MP3 for a song (restricted to Admin/Developer).

@@ -63,3 +63,29 @@ def create_organization(
         )
     organization = crud.create_organization(db, organization_in.name, current_user["email"])
     return auth.serialize_organization(db, organization)
+
+
+@router.delete("/{organization_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_organization(
+    organization_id: str,
+    payload: schemas.OrganizationDeleteConfirm,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(auth.require_developer)
+):
+    """
+    Developer-only organization deletion. Requires exact organization name confirmation.
+    """
+    organization = crud.get_organization(db, organization_id)
+    if not organization:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found."
+        )
+    if payload.confirm_name.strip() != organization.name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Confirmation name does not match the organization name."
+        )
+    db.delete(organization)
+    db.commit()
+    return

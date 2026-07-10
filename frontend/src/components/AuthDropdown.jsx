@@ -141,7 +141,13 @@ export default function AuthDropdown() {
                 <GoogleLogin
                   onSuccess={async (resp) => {
                     setError('');
-                    try { await handleGoogleLogin(resp.credential); setOpen(false); }
+                    try {
+                      const user = await handleGoogleLogin(resp.credential);
+                      setOpen(false);
+                      const ownedOrg = user.organizations?.find(org => org.owner_email?.toLowerCase() === user.email.toLowerCase());
+                      const firstOrg = ownedOrg || user.organizations?.[0];
+                      navigate(user.role === 'developer' || !firstOrg ? '/' : `/org/${firstOrg.id}`, { replace: true });
+                    }
                     catch { setError('Sign-in failed. Try again.'); }
                   }}
                   onError={() => setError('Google Sign-In failed.')}
@@ -171,7 +177,13 @@ export default function AuthDropdown() {
               <GoogleLogin
                 onSuccess={async (resp) => {
                   setError('');
-                  try { await handleGoogleLogin(resp.credential); setOpen(false); }
+                  try {
+                    const user = await handleGoogleLogin(resp.credential);
+                    setOpen(false);
+                    const ownedOrg = user.organizations?.find(org => org.owner_email?.toLowerCase() === user.email.toLowerCase());
+                    const firstOrg = ownedOrg || user.organizations?.[0];
+                    navigate(user.role === 'developer' || !firstOrg ? '/' : `/org/${firstOrg.id}`, { replace: true });
+                  }
                   catch { setError('Sign-in failed. Try again.'); }
                 }}
                 onError={() => setError('Google Sign-In failed.')}

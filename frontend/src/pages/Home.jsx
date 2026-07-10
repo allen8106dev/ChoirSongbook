@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useNavigate } from 'react-router-dom';
-import { Building2, ChevronRight, Plus, Shield, UserRound } from 'lucide-react';
+import { Building2, ChevronRight, Plus, Shield, Trash2, UserRound, X } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 
 export default function Home() {
@@ -10,11 +10,13 @@ export default function Home() {
     organizations,
     ownedOrganization,
     createOrganization,
+    deleteOrganization,
     handleGoogleLogin,
     switchOrganization,
   } = useSongbook();
   const navigate = useNavigate();
   const [organizationName, setOrganizationName] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [error, setError] = useState('');
 
   const isSignedIn = !!currentUser.email;
@@ -48,6 +50,21 @@ export default function Home() {
     }
   };
 
+  const handleDeleteOrganization = (organization) => {
+    setError('');
+    setDeleteConfirm({ id: organization.id, name: '' });
+  };
+
+  const handleConfirmDelete = async (organization) => {
+    setError('');
+    try {
+      await deleteOrganization(organization.id, deleteConfirm.name);
+      setDeleteConfirm(null);
+    } catch (err) {
+      setError(err?.response?.data?.detail || 'Could not delete organization.');
+    }
+  };
+
   return (
     <div className="mx-auto flex min-h-[calc(100vh-6rem)] max-w-3xl flex-col justify-center py-10">
       <div className="space-y-8">
@@ -76,7 +93,12 @@ export default function Home() {
               onSuccess={async (resp) => {
                 setError('');
                 try {
-                  await handleGoogleLogin(resp.credential);
+                  const user = await handleGoogleLogin(resp.credential);
+                  const ownedOrg = user.organizations?.find(org => org.owner_email?.toLowerCase() === user.email.toLowerCase());
+                  const firstOrg = ownedOrg || user.organizations?.[0];
+                  if (user.role !== 'developer' && firstOrg) {
+                    navigate(`/org/${firstOrg.id}`, { replace: true });
+                  }
                 } catch {
                   setError('Sign-in failed. Try again.');
                 }
@@ -104,21 +126,65 @@ export default function Home() {
                 </div>
                 <div className="grid gap-2">
                   {organizations.map((organization) => (
-                    <button
+                    <div
                       key={organization.id}
-                      type="button"
-                      onClick={() => openOrganization(organization.id)}
-                      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-[#1f212d] bg-gray-900/30 p-3 text-left transition-colors hover:border-violet-500/40 hover:bg-violet-950/10"
+                      className="rounded-2xl border border-[#1f212d] bg-gray-900/30 p-3 transition-colors hover:border-violet-500/40 hover:bg-violet-950/10"
                     >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-bold text-white">{organization.name}</p>
-                        <p className="mt-0.5 text-xs text-gray-500">
-                          {organization.song_count} songs
-                          {organization.owner_email?.toLowerCase() === currentUser.email.toLowerCase() ? ' - Owner' : ' - Member'}
-                        </p>
+                      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                        <button type="button" onClick={() => openOrganization(organization.id)} className="min-w-0 text-left">
+                          <p className="truncate text-sm font-bold text-white">{organization.name}</p>
+                          <p className="mt-0.5 text-xs text-gray-500">
+                            {organization.song_count} songs
+                            {isDeveloper ? '' : organization.owner_email?.toLowerCase() === currentUser.email.toLowerCase() ? ' - Owner' : ' - Member'}
+                          </p>
+                        </button>
+                        <div className="flex items-center gap-2">
+                          {isDeveloper && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteOrganization(organization)}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-red-900/30 bg-red-950/10 text-red-400 hover:bg-red-950/25"
+                              title="Delete organization"
+                              aria-label="Delete organization"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                          <button type="button" onClick={() => openOrganization(organization.id)} className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-gray-500 hover:text-gray-300" aria-label="Open organization">
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-gray-500" />
-                    </button>
+                      {isDeveloper && deleteConfirm?.id === organization.id && (
+                        <div className="mt-3 grid gap-2 border-t border-[#1f212d] pt-3">
+                          <p className="text-xs text-red-300">Type the organization name to confirm deletion.</p>
+                          <input
+                            type="text"
+                            value={deleteConfirm.name}
+                            onChange={(event) => setDeleteConfirm({ id: organization.id, name: event.target.value })}
+                            placeholder={organization.name}
+                            className="rounded-xl border border-red-900/30 bg-gray-950 px-3 py-2 text-xs text-white outline-none focus:border-red-500"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleConfirmDelete(organization)}
+                              disabled={deleteConfirm.name !== organization.name}
+                              className="flex-1 rounded-xl bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            >
+                              <Trash2 className="inline w-3 h-3 mr-1" />Delete
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteConfirm(null)}
+                              className="rounded-xl bg-gray-800 px-3 py-2 text-xs font-bold text-gray-300 hover:text-white transition-colors"
+                            >
+                              <X className="inline w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>

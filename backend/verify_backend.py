@@ -105,15 +105,18 @@ def run_tests():
     assert response.status_code == 403
     print("   [PASS] Viewer song creation blocked.")
     
-    # Try adding song as member -> should fail
+    # Add song as member -> should succeed
     response = client.post("/api/songs", json={
         "title": "Member Song",
         "lyrics": "Lyrics content",
         "languages": ["English"],
         "categories": ["Praise"]
     }, headers=member_headers)
-    assert response.status_code == 403
-    print("   [PASS] Member song creation blocked.")
+    assert response.status_code == 201
+    member_song = response.json()
+    response = client.delete(f"/api/songs/{member_song['id']}", headers=dev_headers)
+    assert response.status_code == 204
+    print("   [PASS] Member song creation allowed.")
 
     # Add song 'Amazing Grace' as Developer -> should succeed
     response = client.post("/api/songs", json={
