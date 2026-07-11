@@ -110,11 +110,11 @@ export const SongbookProvider = ({ children }) => {
   const switchOrganization = useCallback((organizationId) => {
     localStorage.setItem('cs_active_org_id', organizationId);
     setActiveOrganizationId(organizationId);
-    queryClient.removeQueries({ queryKey: ['songs'] });
-    queryClient.removeQueries({ queryKey: ['categories'] });
-    queryClient.removeQueries({ queryKey: ['languages'] });
-    queryClient.removeQueries({ queryKey: ['favourites'] });
-    queryClient.removeQueries({ queryKey: ['adminEmails'] });
+    queryClient.invalidateQueries({ queryKey: ['songs'] });
+    queryClient.invalidateQueries({ queryKey: ['categories'] });
+    queryClient.invalidateQueries({ queryKey: ['languages'] });
+    queryClient.invalidateQueries({ queryKey: ['favourites'] });
+    queryClient.invalidateQueries({ queryKey: ['adminEmails'] });
   }, [queryClient]);
   
   // Songs query

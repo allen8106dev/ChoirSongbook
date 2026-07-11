@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { LogOut, ChevronDown, User, Plus } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 
@@ -12,6 +12,7 @@ export default function AuthDropdown() {
   const [organizationError, setOrganizationError] = useState('');
   const ref = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const isSignedIn = !!currentUser.email;
 
@@ -142,8 +143,12 @@ export default function AuthDropdown() {
                   onSuccess={async (resp) => {
                     setError('');
                     try {
-                      await handleGoogleLogin(resp.credential);
+                      const user = await handleGoogleLogin(resp.credential);
                       setOpen(false);
+                      if (user.role === 'developer' && location.pathname === '/profile') {
+                        const orgId = user.organizations?.[0]?.id;
+                        if (orgId) navigate(`/org/${orgId}`);
+                      }
                     }
                     catch { setError('Sign-in failed. Try again.'); }
                   }}

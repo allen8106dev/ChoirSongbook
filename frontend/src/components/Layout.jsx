@@ -23,7 +23,7 @@ export default function Layout({ children }) {
     ...(isActiveOrgMember && !isDeveloperHome && activeOrganizationId
       ? [{ to: `${orgBase}/admin/add`, label: 'Add Song', icon: PlusCircle }]
       : []),
-    ...(isActiveOrgAdmin && !isDeveloper && activeOrganizationId
+    ...(isActiveOrgAdmin && activeOrganizationId
       ? [{ to: `${orgBase}/admin/settings`, label: 'Console', icon: Settings }]
       : []),
     ...(!isDeveloper ? [{ to: '/profile', label: 'Favourites', icon: Star }] : [])
