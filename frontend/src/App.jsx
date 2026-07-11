@@ -12,18 +12,16 @@ import AdminSettings from './pages/AdminSettings';
 import Profile from './pages/Profile';
 
 const OrgAdminRoute = ({ children }) => {
-  const { isActiveOrgAdmin } = useSongbook();
-  if (!isActiveOrgAdmin) {
-    return <Navigate to="/" replace />;
-  }
+  const { isActiveOrgAdmin, isOrgsLoading } = useSongbook();
+  if (isOrgsLoading) return null;
+  if (!isActiveOrgAdmin) return <Navigate to="/" replace />;
   return children;
 };
 
 const OrgSongEditorRoute = ({ children }) => {
-  const { isActiveOrgMember } = useSongbook();
-  if (!isActiveOrgMember) {
-    return <Navigate to="/" replace />;
-  }
+  const { isActiveOrgMember, isOrgsLoading } = useSongbook();
+  if (isOrgsLoading) return null;
+  if (!isActiveOrgMember) return <Navigate to="/" replace />;
   return children;
 };
 

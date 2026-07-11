@@ -64,7 +64,7 @@ export const SongbookProvider = ({ children }) => {
   const isFavourite = (songId) => favourites.includes(songId);
 
   // --- React Query Data Fetching Queries ---
-  const { data: organizations = [] } = useQuery({
+  const { data: organizations = [], isLoading: isOrgsLoading } = useQuery({
     queryKey: ['organizations', currentUser.email],
     queryFn: apiService.organizations.getAll,
     enabled: !!currentUser.email,
@@ -172,7 +172,7 @@ export const SongbookProvider = ({ children }) => {
   }, [adminEmailsData]);
 
   // Combined loading states
-  const isLoading = isSongsLoading;
+  const isLoading = isSongsLoading || isOrgsLoading;
 
   // --- Mutations for Operations ---
 
@@ -379,6 +379,7 @@ export const SongbookProvider = ({ children }) => {
         isDeveloper,
         adminEmails,
         isLoading,
+        isOrgsLoading,
         favourites,
         toggleFavourite,
         isFavourite,

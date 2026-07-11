@@ -22,13 +22,17 @@ export default function Home() {
   const isSignedIn = !!currentUser.email;
   const isDeveloper = currentUser.role === 'developer';
 
+  // Redirect immediately using cached org id (avoids flash of home page)
+  const cachedOrgId = localStorage.getItem('cs_active_org_id');
+
   useEffect(() => {
     if (!isSignedIn || isDeveloper) return;
-    if (ownedOrganization && organizations.length === 1) {
-      switchOrganization(ownedOrganization.id);
-      navigate(`/org/${ownedOrganization.id}`, { replace: true });
+    const targetOrgId = cachedOrgId || (ownedOrganization?.id) || organizations[0]?.id;
+    if (targetOrgId) {
+      switchOrganization(targetOrgId);
+      navigate(`/org/${targetOrgId}`, { replace: true });
     }
-  }, [isSignedIn, isDeveloper, ownedOrganization, organizations.length, switchOrganization, navigate]);
+  }, [isSignedIn, isDeveloper, cachedOrgId, ownedOrganization, organizations, switchOrganization, navigate]);
 
   const openOrganization = (organizationId) => {
     switchOrganization(organizationId);

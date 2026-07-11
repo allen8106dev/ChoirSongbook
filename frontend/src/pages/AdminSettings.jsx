@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Mail, Plus, Trash2, Edit2, Globe, Tag, Check, X, ShieldAlert, Building2, AlertTriangle } from 'lucide-react';
 import { useSongbook } from '../context/SongbookContext';
 import { MAX_ORG_NAME, MAX_LANGUAGE_NAME, MAX_CATEGORY_NAME } from '../validation';
@@ -23,6 +24,7 @@ export default function AdminSettings() {
     deleteLanguage
   } = useSongbook();
 
+  const navigate = useNavigate();
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [newOrganizationName, setNewOrganizationName] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -175,7 +177,7 @@ export default function AdminSettings() {
           <div className="space-y-3">
             <select
               value={activeOrganizationId}
-              onChange={(event) => switchOrganization(event.target.value)}
+              onChange={(event) => { switchOrganization(event.target.value); navigate(`/org/${event.target.value}/admin/settings`); }}
               className="w-full rounded-2xl border border-[#1f212d] bg-gray-950 px-4 py-3 text-sm font-semibold text-white outline-none focus:border-violet-500"
             >
               {organizations.map((organization) => (
